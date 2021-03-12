@@ -4,14 +4,13 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/tidwall/gjson"
 	"io/ioutil"
 	"os"
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/go-rod/rod"
-
-	"github.com/tuifer/tuifei/cookier"
+	"github.com/tuifer/tuifei/config"
 	"github.com/tuifer/tuifei/downloader"
 	"github.com/tuifer/tuifei/extractors"
 	"github.com/tuifer/tuifei/extractors/types"
@@ -127,6 +126,9 @@ func init() {
 	flag.StringVar(&youkuPassword, "password", "", "Youku password")
 
 	flag.BoolVar(&episodeTitleOnly, "eto", false, "File name of each bilibili episode doesn't include the playlist title")
+
+	value := gjson.Get(config.ConfigJson, "version")
+	println(value.String())
 }
 
 func download(videoURL string) error {
@@ -244,9 +246,10 @@ func main() {
 		}
 	} else {
 		// Try to use current user's cookie if possible, if failed empty cookie will be used
-		_ = rod.Try(func() {
-			cookie = cookier.Get(args...)
-		})
+		//_ = rod.Try(func() {
+		//	cookie = cookier.Get(args...)
+		//})
+		cookie = ""
 	}
 
 	request.SetOptions(request.Options{
