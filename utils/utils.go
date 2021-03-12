@@ -110,11 +110,15 @@ func FileName(name, ext string, length int) string {
 
 // FilePath gen valid file path
 func FilePath(name, ext string, length int, outputPath string, escape bool) (string, error) {
-	if outputPath != "" {
-		if _, err := os.Stat(outputPath); err != nil {
+	outputPath = fmt.Sprintf("%s/%s/", outputPath, name[0:3])
+	if _, err := os.Stat(outputPath); err != nil {
+		err := os.MkdirAll(outputPath, os.ModePerm)
+		if err != nil {
+			fmt.Printf("mkdir failed![%v]\n", err)
 			return "", err
 		}
 	}
+	//gjson.Get(config.ConfigJson, "outputPath").String()
 	var fileName string
 	if escape {
 		fileName = FileName(name, ext, length)
@@ -282,4 +286,22 @@ func Range(min, max int) []int {
 		items[index] = min + index
 	}
 	return items
+}
+func Utf8Index(str, substr string) int {
+	asciiPos := strings.Index(str, substr)
+	if asciiPos == -1 || asciiPos == 0 {
+		return asciiPos
+	}
+	pos := 0
+	totalSize := 0
+	reader := strings.NewReader(str)
+	for _, size, err := reader.ReadRune(); err == nil; _, size, err = reader.ReadRune() {
+		totalSize += size
+		pos++
+		// 匹配到
+		if totalSize == asciiPos {
+			return pos
+		}
+	}
+	return pos
 }

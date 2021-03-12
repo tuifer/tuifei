@@ -537,7 +537,7 @@ func (downloader *Downloader) Download(data *types.Data) error {
 
 	title := downloader.option.OutputName
 	if title == "" {
-		title = data.Title
+		title = data.VideoId
 	}
 	title = utils.FileName(title, "", downloader.option.FileNameLength)
 

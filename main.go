@@ -93,7 +93,7 @@ func init() {
 	flag.StringVar(&refer, "r", "", "Use specified Referrer")
 	flag.StringVar(&stream, "f", "", "Select specific stream to download")
 	flag.StringVar(&file, "F", "", "URLs file path")
-	flag.StringVar(&outputPath, "o", "", "Specify the output path")
+	flag.StringVar(&outputPath, "o", getConfig("outputPath"), "Specify the output path")
 	flag.StringVar(&outputName, "O", "", "Specify the output file name")
 	flag.IntVar(&fileNameLength, "file-name-length", 255, "The maximum length of a file name, 0 means unlimited")
 	flag.BoolVar(&caption, "C", false, "Download captions")
@@ -152,7 +152,9 @@ func download(videoURL string) error {
 		fmt.Printf("%s\n", jsonData)
 		return nil
 	}
-
+	domain, err := extractors.Domain(videoURL)
+	//替换outputPath 里域名和videoid
+	outputPath = strings.Replace(outputPath, "{#doamin}", domain, 1)
 	defaultDownloader := downloader.New(downloader.Options{
 		InfoOnly:       infoOnly,
 		Stream:         stream,
@@ -278,6 +280,11 @@ func main() {
 
 	var isErr bool
 	for _, videoURL := range args {
+		//所有.html的 删除掉 .html后内容
+		pos := utils.Utf8Index(videoURL, ".html")
+		if pos > 0 {
+			videoURL = videoURL[0:pos] + ".html"
+		}
 		if err := download(videoURL); err != nil {
 			printError(videoURL, err)
 			isErr = true
