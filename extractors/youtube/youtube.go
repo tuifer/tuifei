@@ -165,6 +165,7 @@ func youtubeDownload(uri string) *types.Data {
 	return &types.Data{
 		Site:    "YouTube youtube.com",
 		Title:   title,
+		VideoId: fmt.Sprintf("%s", vid[1]),
 		Type:    "video",
 		Streams: streams,
 		URL:     uri,

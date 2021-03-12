@@ -1,7 +1,9 @@
 package tangdou
 
 import (
+	"fmt"
 	"github.com/tuifer/tuifei/extractors/types"
+	"github.com/tuifer/tuifei/parser"
 	"github.com/tuifer/tuifei/request"
 	"github.com/tuifer/tuifei/utils"
 )
@@ -110,10 +112,11 @@ func tangdouDownload(uri string) *types.Data {
 			Size: size,
 		},
 	}
-
+	vid := parser.GetVideoIdByUrl(uri, `space/(\d+).html`)
 	return &types.Data{
 		Site:    "糖豆广场舞 tangdou.com",
 		Title:   title,
+		VideoId: fmt.Sprintf("%s", vid),
 		Type:    types.DataTypeVideo,
 		Streams: streams,
 		URL:     uri,

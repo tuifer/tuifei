@@ -82,6 +82,7 @@ func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, er
 		{
 			Site:    "抖音 douyin.com",
 			Title:   apiData.ItemList[0].Desc,
+			VideoId: videoID,
 			Type:    types.DataTypeVideo,
 			Streams: streams,
 			URL:     url,

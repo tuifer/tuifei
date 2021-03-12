@@ -110,6 +110,7 @@ func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, er
 		{
 			Site:    "斗鱼 douyu.com",
 			Title:   title,
+			VideoId: vid,
 			Type:    types.DataTypeVideo,
 			Streams: streams,
 			URL:     url,

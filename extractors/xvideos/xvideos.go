@@ -1,6 +1,8 @@
 package xvideos
 
 import (
+	"fmt"
+	"github.com/tuifer/tuifei/parser"
 	"strings"
 	"sync"
 
@@ -113,10 +115,12 @@ func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, er
 			Quality: src.quality,
 		}
 	}
+	vid := parser.GetVideoIdByUrl(url, `video(\d+)/`)
 	return []*types.Data{
 		{
 			Site:    "XVIDEOS xvideos.com",
 			Title:   title,
+			VideoId: fmt.Sprintf("%s", vid),
 			Type:    types.DataTypeVideo,
 			Streams: streams,
 			URL:     url,

@@ -1,6 +1,7 @@
 package haokan
 
 import (
+	"github.com/tuifer/tuifei/parser"
 	"strings"
 
 	"github.com/tuifer/tuifei/extractors/types"
@@ -64,11 +65,13 @@ func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, er
 			Size: size,
 		},
 	}
-
+	//?vid=7950181234316505349
+	videoid := parser.GetVideoIdByUrl(url, `\?vid=(\d{6,})`)
 	return []*types.Data{
 		{
 			Site:    "好看视频 haokan.baidu.com",
 			Title:   title,
+			VideoId: videoid,
 			Type:    types.DataTypeVideo,
 			Streams: streams,
 			URL:     url,

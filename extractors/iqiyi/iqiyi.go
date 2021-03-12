@@ -198,6 +198,7 @@ func (e *extractor) Extract(url string, _ types.Options) ([]*types.Data, error) 
 		{
 			Site:    "爱奇艺 iqiyi.com",
 			Title:   title,
+			VideoId: fmt.Sprintf("%s", tvid),
 			Type:    types.DataTypeVideo,
 			Streams: streams,
 			URL:     url,

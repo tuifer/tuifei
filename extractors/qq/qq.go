@@ -217,6 +217,7 @@ func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, er
 		{
 			Site:    "腾讯视频 v.qq.com",
 			Title:   data.Vl.Vi[0].Ti,
+			VideoId: vid,
 			Type:    types.DataTypeVideo,
 			Streams: streams,
 			URL:     url,

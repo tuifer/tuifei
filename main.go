@@ -83,10 +83,10 @@ var (
 )
 
 func init() {
-	flag.BoolVar(&version, "v", false, "Show version")
-	flag.BoolVar(&debug, "d", false, "Debug mode")
-	flag.BoolVar(&infoOnly, "i", false, "Information only")
-	flag.BoolVar(&extractedData, "j", false, "Print extracted data")
+	flag.BoolVar(&version, "v", getConfigBool("version"), "Show version")
+	flag.BoolVar(&debug, "d", getConfigBool("debug"), "Debug mode")
+	flag.BoolVar(&infoOnly, "i", getConfigBool("infoOnly"), "Information only")
+	flag.BoolVar(&extractedData, "j", getConfigBool("extractedData"), "Print extracted data")
 
 	flag.StringVar(&cookie, "c", "", "Cookie")
 	flag.BoolVar(&playlist, "p", false, "Download playlist")
@@ -110,21 +110,15 @@ func init() {
 	flag.IntVar(&chunkSizeMB, "cs", 0, "HTTP chunk size for downloading (in MB)")
 	flag.IntVar(&threadNumber, "n", 10, "The number of download thread (only works for multiple-parts video)")
 
-	flag.BoolVar(&useAria2RPC, "aria2", false, "Use Aria2 RPC to download")
-	flag.StringVar(&aria2Token, "aria2token", "", "Aria2 RPC Token")
-	flag.StringVar(&aria2Addr, "aria2addr", "localhost:6800", "Aria2 Address")
-	flag.StringVar(&aria2Method, "aria2method", "http", "Aria2 Method")
+	//flag.BoolVar(&useAria2RPC, "aria2", false, "Use Aria2 RPC to download")
+	//flag.StringVar(&aria2Token, "aria2token", "", "Aria2 RPC Token")
+	//flag.StringVar(&aria2Addr, "aria2addr", "localhost:6800", "Aria2 Address")
+	//flag.StringVar(&aria2Method, "aria2method", "http", "Aria2 Method")
 
 	// youku
-	flag.StringVar(&youkuCcode, "ccode", "0590", "Youku ccode")
-	flag.StringVar(
-		&youkuCkey,
-		"ckey",
-		"7B19C0AB12633B22E7FE81271162026020570708D6CC189E4924503C49D243A0DE6CD84A766832C2C99898FC5ED31F3709BB3CDD82C96492E721BDD381735026",
-		"Youku ckey",
-	)
-	flag.StringVar(&youkuPassword, "password", "", "Youku password")
-
+	flag.StringVar(&youkuCcode, "ccode", getConfig("youkuCcode"), "Youku ccode")
+	flag.StringVar(&youkuCkey, "ckey", getConfig("youkuCkey"), "Youku ckey")
+	flag.StringVar(&youkuPassword, "password", getConfig("youkuPassword"), "Youku password")
 	flag.BoolVar(&episodeTitleOnly, "eto", false, "File name of each bilibili episode doesn't include the playlist title")
 
 	//value := gjson.Get(config.ConfigJson, "version")
@@ -193,7 +187,14 @@ func download(videoURL string) error {
 	}
 	return nil
 }
-
+func getConfigBool(name string) bool {
+	value := gjson.Get(config.ConfigJson, name)
+	return value.Bool()
+}
+func getConfig(name string) string {
+	value := gjson.Get(config.ConfigJson, name).String()
+	return value
+}
 func printError(url string, err error) {
 	fmt.Fprintf(
 		color.Output,
@@ -263,11 +264,11 @@ func main() {
 		}
 		var build strings.Builder
 		for domain, _ := range domainList {
-			build.WriteString(gjson.Get(config.ConfigJson, "cookie."+domain).String())
+			build.WriteString(getConfig("cookie." + domain))
 		}
 		cookie = build.String()
 	}
-	os.Exit(1)
+	fmt.Println("开始调用cookie", cookie)
 	request.SetOptions(request.Options{
 		RetryTimes: retryTimes,
 		Cookie:     cookie,

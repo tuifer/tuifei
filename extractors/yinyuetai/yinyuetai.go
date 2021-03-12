@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-
 	"github.com/tuifer/tuifei/extractors/types"
 	"github.com/tuifer/tuifei/request"
 	"github.com/tuifer/tuifei/utils"
@@ -77,6 +76,7 @@ func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, er
 		{
 			Site:    "音悦台 yinyuetai.com",
 			Title:   title,
+			VideoId: fmt.Sprintf("%s", vid),
 			Type:    types.DataTypeVideo,
 			Streams: streams,
 			URL:     url,

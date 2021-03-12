@@ -237,11 +237,11 @@ func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, er
 	} else {
 		title = fmt.Sprintf("%s %s", youkuData.Data.Show.Title, youkuData.Data.Video.Title)
 	}
-
 	return []*types.Data{
 		{
 			Site:    "优酷 youku.com",
 			Title:   title,
+			VideoId: vid,
 			Type:    types.DataTypeVideo,
 			Streams: streams,
 			URL:     url,

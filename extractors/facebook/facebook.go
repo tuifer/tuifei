@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/tuifer/tuifei/extractors/types"
+	"github.com/tuifer/tuifei/parser"
 	"github.com/tuifer/tuifei/request"
 	"github.com/tuifer/tuifei/utils"
 )
@@ -53,11 +54,12 @@ func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, er
 			Quality: quality,
 		}
 	}
-
+	videoid := parser.GetVideoIdByUrl(url, `/(\d{6,})/`)
 	return []*types.Data{
 		{
 			Site:    "Facebook facebook.com",
 			Title:   title,
+			VideoId: videoid,
 			Type:    types.DataTypeVideo,
 			Streams: streams,
 			URL:     url,

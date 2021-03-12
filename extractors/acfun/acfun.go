@@ -5,11 +5,11 @@ import (
 	"net/url"
 	"regexp"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/tuifer/tuifei/extractors/types"
 	"github.com/tuifer/tuifei/parser"
 	"github.com/tuifer/tuifei/request"
 	"github.com/tuifer/tuifei/utils"
-	jsoniter "github.com/json-iterator/go"
 )
 
 const (
@@ -18,6 +18,7 @@ const (
 	bangumiListPattern   = "window.bangumiList = (.*);"
 
 	bangumiHTMLURL  = "https://www.acfun.cn/bangumi/aa%d_36188_%d"
+	bangumiVideoId  = "acfun_%d_%d"
 	bangumiVideoURL = "https://%s/mediacloud/acfun/acfun_video/hls/"
 
 	referer = "https://www.acfun.cn"
@@ -65,13 +66,16 @@ func (e *extractor) Extract(URL string, option types.Options) ([]*types.Data, er
 		wgp.Add()
 		go func() {
 			defer wgp.Done()
+			option.VideoId = acfunVideoId(t)
 			datas = append(datas, extractBangumi(concatURL(t), option))
 		}()
 	}
 	wgp.Wait()
 	return datas, nil
 }
-
+func acfunVideoId(epData *episodeData) string {
+	return fmt.Sprintf(bangumiVideoId, epData.BangumiID, epData.ItemID)
+}
 func concatURL(epData *episodeData) string {
 	return fmt.Sprintf(bangumiHTMLURL, epData.BangumiID, epData.ItemID)
 }
@@ -133,6 +137,7 @@ func extractBangumi(URL string, option types.Options) *types.Data {
 	data := &types.Data{
 		Site:    "AcFun acfun.cn",
 		Title:   parser.Title(doc),
+		VideoId: option.VideoId,
 		Type:    types.DataTypeVideo,
 		Streams: streams,
 		URL:     URL,

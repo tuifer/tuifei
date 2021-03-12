@@ -2,6 +2,7 @@ package netease
 
 import (
 	"errors"
+	"fmt"
 	netURL "net/url"
 	"strings"
 
@@ -64,6 +65,7 @@ func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, er
 		{
 			Site:    "网易云音乐 music.163.com",
 			Title:   title,
+			VideoId: fmt.Sprintf("%s", vid),
 			Type:    types.DataTypeVideo,
 			Streams: streams,
 			URL:     url,

@@ -95,6 +95,7 @@ func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, er
 		{
 			Site:    "秒拍 miaopai.com",
 			Title:   data.Data.Description,
+			VideoId: fmt.Sprintf("%s", id),
 			Type:    types.DataTypeVideo,
 			Streams: streams,
 			URL:     url,

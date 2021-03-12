@@ -2,6 +2,7 @@ package vimeo
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -89,11 +90,11 @@ func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, er
 			Quality: video.Quality,
 		}
 	}
-
 	return []*types.Data{
 		{
 			Site:    "Vimeo vimeo.com",
 			Title:   vimeoData.Video.Title,
+			VideoId: fmt.Sprintf("%s", vid),
 			Type:    types.DataTypeVideo,
 			Streams: streams,
 			URL:     url,

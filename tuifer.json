@@ -1,5 +1,5 @@
 {
-	"version":"1.1",
+	"version":false,
 	"debug":false,
 	"infoOnly":false,
 	"extractedData":false,
@@ -8,7 +8,7 @@
 		"iesdouyin":"",
 		"bilibili":"",
 		"pixivision":"",
-		"youku":"",
+		"youku":"__ysuid=1614231029224xAC;P_gck=NA%7C9MArIb3iL8JkJKW4GEikIQ%3D%3D%7CNA%7C1615381809290;P_pck_rm=0dFU0QPxb7dcbe7050fb53ZBBiWjYw%2FcrjpGHOgkEdmRARaCOQs7TZcAV1CW88cQ3i%2BQmuxrm0QTAyOmmRLRq02ygdVXCWImudGq107us8s%2B33PJNkw2ixMOEg%2BHxooosnReXcfDNciR2DDF66VA1ywLg5W0pE7h4dm%2FyA%3D%3D%5FV2;disrd=21967;_m_h5_tk=ca38b0b1949585f85cc571a6b1a5bd49_1615585428324;_m_h5_tk_enc=9817daca41b18fd418e85780b25c3f48;__ayft=1615581109478;__aysid=1615581109478CZz;__ayscnt=1;P_ck_ctl=0F8C120B2F584A090F795D7E2F44A2D2;xlly_s=1;__arycid=dd-3-00;__arcms=dd-3-00;__arpvid=16155811242466sybJF-1615581124374;__aypstp=3;__ayspstp=3;__ayvstp=7;__aysvstp=7;tfstk=cV3dBSVtvdvnWkPtgDKGN1e5y_Fdauv8C6wlyBHYxMNGUGbCJsAIoqQFbHN5pPdO.;l=eBNWHQe4OV5mIs6oBOfwhurza77thIRAguPzaNbMiOCP_wBp51CcW6NGIHt9CnGNh689R38KdX68BeYBqnbTXeQ4Zn1TIRDmn;isg=BA0NTZ7LUafrrsqEBtvU0-ssHCmH6kG8Sv9PE0-SL6QTRi34Fz9xjFvUsNIghll0",
 		"youtube":"",
 		"youtu":"",
 		"iqiyi":"iqiyi cookie",
@@ -31,8 +31,8 @@
 	"outputPath":"./video/{#doamin}/{#outputName}",
 	"retryTimes":10,
 	"threadNumber":10,
-	"youkuCcode":"",
-	"youkuCkey":"",
+	"youkuCcode":"0502",
+	"youkuCkey":"140#Zwzoi/kAzzPAWQo23zSQKtN8s7abXSEbT1Jlq5exucC5X0g481XvkCOnmZPZdVZwcVbK06hqzznTCm6mxQXxzXF1VaBqlQzx2DD3VthqzFK12QMdlp1xzoObV2EqlVFnlT8I1wba7X53xYYCTdkWsdWE5CTH83TmqZ5i6ePaeMrfG702x4zMVVZzHyNMuxy2WKTPUpiCxjLR/4lM+j3wdOCK3tragy2HttJNeIDQ0yrADdR5e1Dw3TylccUl4B36uZVo0nlwmYvVytYSvuyWr6GTsfoBWzcsiSnNHqEPkOxwHp9ZL5qKExYOyz57g01PVTnWLzsaT9U9ARcGyFhFHo8eLn8BKVsJUEKx0//VZhSiTb5LQKjITGKf7NXeSs4l2qCgG1iBWF4lXOKmNUeJbBDORQ5S21KlwZiHAo4pz40ln7lbd3xjk6LUXZcVPgOrBNAu3cxJCyU8iOsNeOGaYpWUm4cTafLHqAyekqM7YWGmwo0xqT4Vt2AK7MOgtawUqjBdiZGDJG8Y2+j2SAVos9WwcQkZ4wtVqmg1mmTPfr27YvNVZPvB4wedCOVmylibZOJaVu9R0b1aNLXL/pQcvPz6nDmrQSh3fdAbSL7F2PuiW5u8ZPPGm2xqBt0VoD4L0Uk9dXsPdyhVb059ECuP8j1IDvbdvG/aU6kPpHe7lvH3P21zE0KZ13Ac8iVrxvWzIU2Tg1Eq4UQjzlRC4y8lJzzWM9I8sxkLOel2VJAdtbr/ERSopEX8im9Papsas49rvyFv4B7I/LkHW4vNaaCffMJYZGzFg9wqIWF+yURk1mlSRjDkNMA2Ec+Jxa1vVIToRKpewKHn6nl249euem5e2r0dwwVNoxI3DuAtF3jL65dkAjzc+8v/5i3/BvMMVwgmWf4xOqXQftz129HSvZD9pmUSCVYlp/CjpYpKiwC6jycoam8dN9wmGHKL2U5gINlasF==",
 	"youkuPassword":"",
 	
 	

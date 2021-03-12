@@ -2,6 +2,8 @@ package udn
 
 import (
 	"errors"
+	"fmt"
+	"github.com/tuifer/tuifei/parser"
 	"strings"
 
 	"github.com/tuifer/tuifei/extractors/types"
@@ -86,10 +88,12 @@ func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, er
 			Quality: quality,
 		},
 	}
+	vid := parser.GetVideoIdByUrl(url, `/(\d{5,})\D?`)
 	return []*types.Data{
 		{
 			Site:    "udn udn.com",
 			Title:   title,
+			VideoId: fmt.Sprintf("%s", vid),
 			Type:    types.DataTypeVideo,
 			Streams: streams,
 			URL:     url,

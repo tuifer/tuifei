@@ -2,9 +2,9 @@ package parser
 
 import (
 	"fmt"
-	"strings"
-
 	"github.com/PuerkitoBio/goquery"
+	"github.com/tuifer/tuifei/utils"
+	"strings"
 )
 
 // GetDoc return Document object of the HTML string
@@ -51,4 +51,12 @@ func Title(doc *goquery.Document) string {
 		title = doc.Find("title").Text()
 	}
 	return title
+}
+func GetVideoIdByUrl(url string, patter string) string {
+	videoIds := utils.MatchOneOf(url, patter)
+	if videoIds == nil || len(videoIds) < 2 {
+		return ""
+	}
+	videoId := videoIds[1]
+	return videoId
 }

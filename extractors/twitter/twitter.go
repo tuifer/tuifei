@@ -3,6 +3,7 @@ package twitter
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/tuifer/tuifei/parser"
 	"strconv"
 	"strings"
 
@@ -127,11 +128,12 @@ func download(data twitter, uri string) ([]*types.Data, error) {
 			Size:  size,
 		}
 	}
-
+	vid := parser.GetVideoIdByUrl(uri, `/(\d{6,})\D?`)
 	return []*types.Data{
 		{
 			Site:    "Twitter twitter.com",
 			Title:   fmt.Sprintf("%s %s", data.Username, data.TweetID),
+			VideoId: fmt.Sprintf("%s", vid),
 			Type:    types.DataTypeVideo,
 			Streams: streams,
 			URL:     uri,

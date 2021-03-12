@@ -424,6 +424,7 @@ func bilibiliDownload(options bilibiliOptions, extractOption types.Options) *typ
 	return &types.Data{
 		Site:    "哔哩哔哩 bilibili.com",
 		Title:   title,
+		VideoId: fmt.Sprintf("%s", options.cid),
 		Type:    types.DataTypeVideo,
 		Streams: streams,
 		Caption: &types.Part{

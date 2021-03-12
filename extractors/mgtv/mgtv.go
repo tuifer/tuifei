@@ -204,6 +204,7 @@ func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, er
 		{
 			Site:    "芒果TV mgtv.com",
 			Title:   title,
+			VideoId: fmt.Sprintf("%s", vid[1]),
 			Type:    types.DataTypeVideo,
 			Streams: streams,
 			URL:     url,

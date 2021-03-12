@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"github.com/tuifer/tuifei/parser"
 	"io"
 	"net/http"
 	netURL "net/url"
@@ -257,11 +258,12 @@ func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, er
 			Size:  size,
 		},
 	}
-
+	vid := parser.GetVideoIdByUrl(url, `[:/](\d{6,})\D?`)
 	return []*types.Data{
 		{
 			Site:    "微博 weibo.com",
 			Title:   title,
+			VideoId: fmt.Sprintf("%s", vid),
 			Type:    types.DataTypeVideo,
 			Streams: streams,
 			URL:     url,

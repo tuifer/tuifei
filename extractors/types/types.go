@@ -38,10 +38,11 @@ const (
 // Data is the main data structure for the whole video data.
 type Data struct {
 	// URL is used to record the address of this download
-	URL   string   `json:"url"`
-	Site  string   `json:"site"`
-	Title string   `json:"title"`
-	Type  DataType `json:"type"`
+	URL     string   `json:"url"`
+	Site    string   `json:"site"`
+	Title   string   `json:"title"`
+	VideoId string   `json:"videoid"`
+	Type    DataType `json:"type"`
 	// each stream has it's own Parts and Quality
 	Streams map[string]*Stream `json:"streams"`
 	// danmaku, subtitles, etc
@@ -108,10 +109,10 @@ type Options struct {
 
 	// EpisodeTitleOnly indicates file name of each bilibili episode doesn't include the playlist title
 	EpisodeTitleOnly bool
-
-	YoukuCcode    string
-	YoukuCkey     string
-	YoukuPassword string
+	VideoId          string
+	YoukuCcode       string
+	YoukuCkey        string
+	YoukuPassword    string
 }
 
 // Extractor implements video data extraction related operations.
