@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"github.com/fatih/color"
 	"io/ioutil"
 	"os"
@@ -22,13 +21,12 @@ var ConfigJson string
 func init() {
 	tuifer := "./tuifer.json"
 	if _, fileErr := os.Stat(tuifer); fileErr == nil {
-		// Cookie is a file
 		data, err := ioutil.ReadFile(tuifer)
 		if err != nil {
 			color.Red("%v", err)
 			return
 		}
 		ConfigJson = strings.TrimSpace(string(data))
-		fmt.Println("cookie 配置内容", ConfigJson)
+		//fmt.Println("cookie 配置内容", ConfigJson)
 	}
 }

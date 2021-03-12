@@ -74,6 +74,25 @@ func init() {
 		"acfun":      acfun.New(),
 	}
 }
+func Domain(u string) (string, error) {
+	u = strings.TrimSpace(u)
+	var domain string
+	bilibiliShortLink := utils.MatchOneOf(u, `^(av|BV|ep)\w+`)
+	if len(bilibiliShortLink) > 1 {
+		domain = "bilibili"
+	} else {
+		u, err := url.ParseRequestURI(u)
+		if err != nil {
+			return "", err
+		}
+		if u.Host == "haokan.baidu.com" {
+			domain = "haokan"
+		} else {
+			domain = utils.Domain(u.Host)
+		}
+	}
+	return domain, nil
+}
 
 // Extract is the main function to extract the data.
 func Extract(u string, option types.Options) ([]*types.Data, error) {

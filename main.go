@@ -5,12 +5,12 @@ import (
 	"flag"
 	"fmt"
 	"github.com/tidwall/gjson"
+	"github.com/tuifer/tuifei/config"
 	"io/ioutil"
 	"os"
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/tuifer/tuifei/config"
 	"github.com/tuifer/tuifei/downloader"
 	"github.com/tuifer/tuifei/extractors"
 	"github.com/tuifer/tuifei/extractors/types"
@@ -127,8 +127,8 @@ func init() {
 
 	flag.BoolVar(&episodeTitleOnly, "eto", false, "File name of each bilibili episode doesn't include the playlist title")
 
-	value := gjson.Get(config.ConfigJson, "version")
-	println(value.String())
+	//value := gjson.Get(config.ConfigJson, "version")
+	//println(value.String())
 }
 
 func download(videoURL string) error {
@@ -249,9 +249,25 @@ func main() {
 		//_ = rod.Try(func() {
 		//	cookie = cookier.Get(args...)
 		//})
+		//domain:=extractors.Domain(args[0])
+		var domainList map[string]bool
+		domainList = make(map[string]bool)
 		cookie = ""
+		for _, videoURL := range args {
+			domain, err := extractors.Domain(videoURL)
+			if err != nil {
+				printError(videoURL, err)
+			} else {
+				domainList[domain] = true
+			}
+		}
+		var build strings.Builder
+		for domain, _ := range domainList {
+			build.WriteString(gjson.Get(config.ConfigJson, "cookie."+domain).String())
+		}
+		cookie = build.String()
 	}
-
+	os.Exit(1)
 	request.SetOptions(request.Options{
 		RetryTimes: retryTimes,
 		Cookie:     cookie,
