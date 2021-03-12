@@ -8,3 +8,5 @@ var FakeHeaders = map[string]string{
 	"Accept-Language": "en-US,en;q=0.8",
 	"User-Agent":      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.81 Safari/537.36",
 }
+
+//从本地读取Json 配置
