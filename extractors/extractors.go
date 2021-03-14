@@ -18,6 +18,7 @@ import (
 	"github.com/tuifer/tuifei/extractors/netease"
 	"github.com/tuifer/tuifei/extractors/pixivision"
 	"github.com/tuifer/tuifei/extractors/pornhub"
+	"github.com/tuifer/tuifei/extractors/qiyi"
 	"github.com/tuifer/tuifei/extractors/qq"
 	"github.com/tuifer/tuifei/extractors/tangdou"
 	"github.com/tuifer/tuifei/extractors/tiktok"
@@ -52,6 +53,7 @@ func init() {
 		"youtube":    youtubeExtractor,
 		"youtu":      youtubeExtractor, // youtu.be
 		"iqiyi":      iqiyi.New(),
+		"qiyi":       qiyi.New(),
 		"mgtv":       mgtv.New(),
 		"tangdou":    tangdou.New(),
 		"tumblr":     tumblr.New(),

@@ -1,4 +1,4 @@
-package iqiyi
+package qiyi
 
 import (
 	"encoding/json"
@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-type iqiyi struct {
+type qiyi struct {
 	Code string `json:"code"`
 	Data struct {
 		VP struct {
@@ -36,11 +36,11 @@ type iqiyi struct {
 	Msg string `json:"msg"`
 }
 
-type iqiyiURL struct {
+type qiyiURL struct {
 	L string `json:"l"`
 }
 
-const iqiyiReferer = "https://www.iqiyi.com"
+const qiyiReferer = "https://www.iqiyi.com"
 
 func getMacID() string {
 	var macID string
@@ -86,9 +86,34 @@ func matcher(str string, reg string) string {
 	}
 }
 
-func getVPS(tvid, vid string) (*iqiyi, error) {
+//VIP
+func getVipVPS(tvid, vid string) (*qiyi, error) {
+	//根据cookie 获取qiyi的dfp 和uid 还有kuid
+	cookie := getConfig("cookie.iqiyi")
+	uid := matcher(cookie, `P00003=(\d+);`)
+	kuid := matcher(cookie, `QC005=(\w+);`)
+	dfp := matcher(cookie, `__dfp=(\w+)@`)
+	apiURL := fmt.Sprintf("http://apk.tuifeiapi.com:81/api.php?tvid=%s&vid=%s&uid=%s&qyid=%s&dfp=%s", tvid, vid, uid, kuid, dfp)
+	fmt.Println(apiURL)
+	headers := map[string]string{
+		"Cookie":     cookie,
+		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36",
+	}
+	infoUrl, err := request.Get(apiURL, qiyiReferer, nil)
+	if err != nil {
+		return nil, err
+	}
+	info, err := request.Get(infoUrl, qiyiReferer, headers)
+	fmt.Println(info)
+	data := new(qiyi)
+	if err := json.Unmarshal([]byte(info), data); err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+func getVPS(tvid, vid string) (*qiyi, error) {
 	t := time.Now().Unix() * 1000
-	host := "http://cache.video.qiyi.com"
+	host := "http://cache.video.iqiyi.com"
 	params := fmt.Sprintf(
 		"/vps?tvid=%s&vid=%s&v=0&qypid=%s_12&src=01012001010000000000&t=%d&k_tag=1&k_uid=%s&rs=1",
 		tvid, vid, tvid, t, getMacID(),
@@ -96,11 +121,11 @@ func getVPS(tvid, vid string) (*iqiyi, error) {
 	vf := getVF(params)
 	apiURL := fmt.Sprintf("%s%s&vf=%s", host, params, vf)
 	fmt.Println(apiURL)
-	info, err := request.Get(apiURL, iqiyiReferer, nil)
+	info, err := request.Get(apiURL, qiyiReferer, nil)
 	if err != nil {
 		return nil, err
 	}
-	data := new(iqiyi)
+	data := new(qiyi)
 	if err := json.Unmarshal([]byte(info), data); err != nil {
 		return nil, err
 	}
@@ -116,7 +141,7 @@ func New() types.Extractor {
 
 // Extract is the main function to extract the data.
 func (e *extractor) Extract(url string, _ types.Options) ([]*types.Data, error) {
-	html, err := request.Get(url, iqiyiReferer, nil)
+	html, err := request.Get(url, qiyiReferer, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +195,7 @@ func (e *extractor) Extract(url string, _ types.Options) ([]*types.Data, error) 
 	if title == "" {
 		title = doc.Find("title").Text()
 	}
-	videoDatas, err := getVPS(tvid[1], vid[1])
+	videoDatas, err := getVipVPS(tvid[1], vid[1])
 	if err != nil {
 		return nil, err
 	}
@@ -183,11 +208,11 @@ func (e *extractor) Extract(url string, _ types.Options) ([]*types.Data, error) 
 	for _, video := range videoDatas.Data.VP.Tkl[0].Vs {
 		urls := make([]*types.Part, len(video.Fs))
 		for index, v := range video.Fs {
-			realURLData, err := request.Get(urlPrefix+v.L, iqiyiReferer, nil)
+			realURLData, err := request.Get(urlPrefix+v.L, qiyiReferer, nil)
 			if err != nil {
 				return nil, err
 			}
-			var realURL iqiyiURL
+			var realURL qiyiURL
 			if err = json.Unmarshal([]byte(realURLData), &realURL); err != nil {
 				return nil, err
 			}
@@ -210,7 +235,7 @@ func (e *extractor) Extract(url string, _ types.Options) ([]*types.Data, error) 
 
 	return []*types.Data{
 		{
-			Site:    "爱奇艺 iqiyi.com",
+			Site:    "爱奇艺 qiyi.com",
 			Title:   title,
 			VideoId: fmt.Sprintf("%s", tvid[1]),
 			Type:    types.DataTypeVideo,

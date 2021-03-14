@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	bangumiDataPattern   = "window.pageInfo = window.bangumiData = (.*);"
+	bangumiDataPattern = `window.pageInfo = window.bangumiData = (.*);
+        window.qualityConfig =`
 	qualityConfigPattern = "window.qualityConfig = (.*);"
 	bangumiListPattern   = "window.bangumiList = (.*);"
 
@@ -66,21 +67,18 @@ func (e *extractor) Extract(URL string, option types.Options) ([]*types.Data, er
 		wgp.Add()
 		go func() {
 			defer wgp.Done()
-			option.VideoId = acfunVideoId(t)
-			datas = append(datas, extractBangumi(concatURL(t), option))
+			datas = append(datas, extractBangumi(concatURL(t), t, option))
 		}()
 	}
 	wgp.Wait()
 	return datas, nil
 }
-func acfunVideoId(epData *episodeData) string {
-	return fmt.Sprintf(bangumiVideoId, epData.BangumiID, epData.ItemID)
-}
+
 func concatURL(epData *episodeData) string {
 	return fmt.Sprintf(bangumiHTMLURL, epData.BangumiID, epData.ItemID)
 }
 
-func extractBangumi(URL string, option types.Options) *types.Data {
+func extractBangumi(URL string, epData *episodeData, option types.Options) *types.Data {
 	var err error
 	html, err := request.GetByte(URL, referer, nil)
 	if err != nil {
@@ -137,7 +135,7 @@ func extractBangumi(URL string, option types.Options) *types.Data {
 	data := &types.Data{
 		Site:    "AcFun acfun.cn",
 		Title:   parser.Title(doc),
-		VideoId: option.VideoId,
+		VideoId: fmt.Sprintf(bangumiVideoId, epData.BangumiID, epData.ItemID),
 		Type:    types.DataTypeVideo,
 		Streams: streams,
 		URL:     URL,
@@ -148,15 +146,12 @@ func extractBangumi(URL string, option types.Options) *types.Data {
 func resolvingData(html []byte) (*bangumiData, *videoInfo, error) {
 	bgData := &bangumiData{}
 	vInfo := &videoInfo{}
-
 	pattern, _ := regexp.Compile(bangumiDataPattern)
-
 	groups := pattern.FindSubmatch(html)
 	err := jsoniter.Unmarshal(groups[1], bgData)
 	if err != nil {
 		return nil, nil, err
 	}
-
 	err = jsoniter.UnmarshalFromString(bgData.CurrentVideoInfo.KsPlayJSON, vInfo)
 	if err != nil {
 		return nil, nil, err

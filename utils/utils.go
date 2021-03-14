@@ -264,7 +264,7 @@ func PrintVersion() {
 	cyan := color.New(color.FgCyan)
 	fmt.Fprintf(
 		color.Output,
-		"\n%s: version %s, A fast, simple and clean video downloader.\n\n",
+		"\n%s: version %s, 简单实用小巧的视频网站下载工具.\n\n",
 		cyan.Sprintf("tuifei"),
 		blue.Sprintf(config.VERSION),
 	)
