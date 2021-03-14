@@ -18,24 +18,17 @@ import (
 type qiyi struct {
 	Code string `json:"code"`
 	Data struct {
-		VP struct {
-			Du  string `json:"du"`
-			Tkl []struct {
-				Vs []struct {
-					Bid   int    `json:"bid"`
-					Scrsz string `json:"scrsz"`
-					Vsize int64  `json:"vsize"`
-					Fs    []struct {
-						L string `json:"l"`
-						B int64  `json:"b"`
-					} `json:"fs"`
-				} `json:"vs"`
-			} `json:"tkl"`
-		} `json:"vp"`
+		PROGRAM struct {
+			VIDEO []struct {
+				Bid   int    `json:"bid"`
+				Scrsz string `json:"scrsz"`
+				Vsize int64  `json:"vsize"`
+				Url   string `url`
+			} `json:"video"`
+		} `json:"program"`
 	} `json:"data"`
 	Msg string `json:"msg"`
 }
-
 type qiyiURL struct {
 	L string `json:"l"`
 }
@@ -85,10 +78,23 @@ func matcher(str string, reg string) string {
 		return ""
 	}
 }
+func substring(source string, start int, end int) string {
+	var r = []rune(source)
+	length := len(r)
+
+	if start < 0 || end > length || start > end {
+		return ""
+	}
+
+	if start == 0 && end == length {
+		return source
+	}
+
+	return string(r[start:end])
+}
 
 //VIP
 func getVipVPS(tvid, vid string) (*qiyi, error) {
-	//根据cookie 获取qiyi的dfp 和uid 还有kuid
 	cookie := getConfig("cookie.iqiyi")
 	uid := matcher(cookie, `P00003=(\d+);`)
 	kuid := matcher(cookie, `QC005=(\w+);`)
@@ -104,7 +110,7 @@ func getVipVPS(tvid, vid string) (*qiyi, error) {
 		return nil, err
 	}
 	info, err := request.Get(infoUrl, qiyiReferer, headers)
-	fmt.Println(info)
+	info = substring(info, 20, utils.Utf8Index(info, ");}catch(e){};"))
 	data := new(qiyi)
 	if err := json.Unmarshal([]byte(info), data); err != nil {
 		return nil, err
@@ -137,6 +143,33 @@ type extractor struct{}
 // New returns a youtube extractor.
 func New() types.Extractor {
 	return &extractor{}
+}
+
+type qiyiURLInfo struct {
+	URL  string
+	Size int64
+}
+type qiyiVideoAddr struct {
+	Info string `json:"info"`
+}
+
+func qiyiM3u8(url string) ([]qiyiURLInfo, error) {
+	var data []qiyiURLInfo
+	var temp qiyiURLInfo
+	urls, err := utils.M3u8URLs(url)
+	if err != nil {
+		return nil, err
+	}
+	for _, u := range urls {
+		size := matcher(u, `contentlength=(\d+)&`)
+		intsize, _ := strconv.ParseInt(size, 10, 64)
+		temp = qiyiURLInfo{
+			URL:  u,
+			Size: intsize,
+		}
+		data = append(data, temp)
+	}
+	return data, nil
 }
 
 // Extract is the main function to extract the data.
@@ -205,26 +238,21 @@ func (e *extractor) Extract(url string, _ types.Options) ([]*types.Data, error) 
 	}
 
 	streams := make(map[string]*types.Stream)
-	urlPrefix := videoDatas.Data.VP.Du
-	for _, video := range videoDatas.Data.VP.Tkl[0].Vs {
-		urls := make([]*types.Part, len(video.Fs))
-		for index, v := range video.Fs {
-			realURLData, err := request.Get(urlPrefix+v.L, qiyiReferer, nil)
-			if err != nil {
-				return nil, err
-			}
-			var realURL qiyiURL
-			if err = json.Unmarshal([]byte(realURLData), &realURL); err != nil {
-				return nil, err
-			}
-			_, ext, err := utils.GetNameAndExt(realURL.L)
-			if err != nil {
-				return nil, err
-			}
+	fmt.Print(videoDatas.Data.PROGRAM.VIDEO)
+	for _, video := range videoDatas.Data.PROGRAM.VIDEO {
+		if len(video.Url) == 0 {
+			continue
+		}
+		m3u8URLs, err := qiyiM3u8(video.Url)
+		if err != nil {
+			return nil, err
+		}
+		urls := make([]*types.Part, len(m3u8URLs))
+		for index, u := range m3u8URLs {
 			urls[index] = &types.Part{
-				URL:  realURL.L,
-				Size: v.B,
-				Ext:  ext,
+				URL:  u.URL,
+				Size: u.Size,
+				Ext:  "ts",
 			}
 		}
 		streams[strconv.Itoa(video.Bid)] = &types.Stream{
