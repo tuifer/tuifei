@@ -141,6 +141,7 @@ func New() types.Extractor {
 
 // Extract is the main function to extract the data.
 func (e *extractor) Extract(url string, _ types.Options) ([]*types.Data, error) {
+	url = strings.Replace(url, ".qiyi.com", ".iqiyi.com", 1)
 	html, err := request.Get(url, qiyiReferer, nil)
 	if err != nil {
 		return nil, err
