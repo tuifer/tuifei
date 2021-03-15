@@ -45,6 +45,10 @@ func MatchOneOf(text string, patterns ...string) []string {
 	}
 	return nil
 }
+func GetConfig(name string) string {
+	value := gjson.Get(config.ConfigJson, name).String()
+	return value
+}
 
 // MatchAll return all matching results
 func MatchAll(text, pattern string) [][]string {
@@ -224,18 +228,8 @@ func Md5(text string) string {
 	sign.Write([]byte(text)) // nolint
 	return fmt.Sprintf("%x", sign.Sum(nil))
 }
-
-// M3u8URLs get all urls from m3u8 url
-func M3u8URLs(uri string) ([]string, error) {
-	if len(uri) == 0 {
-		return nil, errors.New("url is null")
-	}
-
-	html, err := request.Get(uri, "", nil)
-	if err != nil {
-		return nil, err
-	}
-	lines := strings.Split(html, "\n")
+func M3u8UrlByStr(uri string, str string) ([]string, error) {
+	lines := strings.Split(str, "\n")
 	var urls []string
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
@@ -256,6 +250,19 @@ func M3u8URLs(uri string) ([]string, error) {
 		}
 	}
 	return urls, nil
+}
+
+// M3u8URLs get all urls from m3u8 url
+func M3u8URLs(uri string) ([]string, error) {
+	if len(uri) == 0 {
+		return nil, errors.New("url is null")
+	}
+
+	html, err := request.Get(uri, "", nil)
+	if err != nil {
+		return nil, err
+	}
+	return M3u8UrlByStr(uri, html)
 }
 
 // PrintVersion print version information
@@ -304,4 +311,12 @@ func Utf8Index(str, substr string) int {
 		}
 	}
 	return pos
+}
+func Matcher(str string, reg string) string {
+	rePart := MatchOneOf(str, reg)
+	if len(rePart) > 1 {
+		return rePart[1]
+	} else {
+		return ""
+	}
 }

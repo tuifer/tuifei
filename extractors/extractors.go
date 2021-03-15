@@ -30,7 +30,6 @@ import (
 	"github.com/tuifer/tuifei/extractors/vimeo"
 	"github.com/tuifer/tuifei/extractors/weibo"
 	"github.com/tuifer/tuifei/extractors/xvideos"
-	"github.com/tuifer/tuifei/extractors/yinyuetai"
 	"github.com/tuifer/tuifei/extractors/youku"
 	"github.com/tuifer/tuifei/extractors/youtube"
 	"github.com/tuifer/tuifei/utils"
@@ -52,8 +51,8 @@ func init() {
 		"youku":      youku.New(),
 		"youtube":    youtubeExtractor,
 		"youtu":      youtubeExtractor, // youtu.be
-		"iqiyi":      iqiyi.New(),
-		"qiyi":       qiyi.New(),
+		"iqiyi":      qiyi.New(),
+		"qiyi":       iqiyi.New(),
 		"mgtv":       mgtv.New(),
 		"tangdou":    tangdou.New(),
 		"tumblr":     tumblr.New(),
@@ -66,7 +65,6 @@ func init() {
 		"instagram":  instagram.New(),
 		"twitter":    twitter.New(),
 		"qq":         qq.New(),
-		"yinyuetai":  yinyuetai.New(),
 		"geekbang":   geekbang.New(),
 		"pornhub":    pornhub.New(),
 		"xvideos":    xvideos.New(),

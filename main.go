@@ -116,9 +116,9 @@ func init() {
 	//flag.StringVar(&aria2Method, "aria2method", "http", "Aria2 Method")
 
 	// youku
-	flag.StringVar(&youkuCcode, "ccode", getConfig("youkuCcode"), "Youku ccode")
-	flag.StringVar(&youkuCkey, "ckey", getConfig("youkuCkey"), "Youku ckey")
-	flag.StringVar(&youkuPassword, "password", getConfig("youkuPassword"), "Youku password")
+	flag.StringVar(&youkuCcode, "ccode", getConfig("youku.code"), "Youku ccode")
+	flag.StringVar(&youkuCkey, "ckey", getConfig("youku.ckey"), "Youku ckey")
+	flag.StringVar(&youkuPassword, "password", getConfig("youku.passwd"), "Youku password")
 	flag.BoolVar(&episodeTitleOnly, "eto", false, "File name of each bilibili episode doesn't include the playlist title")
 
 	//value := gjson.Get(config.ConfigJson, "version")
@@ -270,7 +270,7 @@ func main() {
 		}
 		cookie = build.String()
 	}
-	fmt.Println("开始调用cookie", cookie)
+	//fmt.Println("开始调用cookie", cookie)
 	request.SetOptions(request.Options{
 		RetryTimes: retryTimes,
 		Cookie:     cookie,

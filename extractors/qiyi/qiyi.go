@@ -3,8 +3,6 @@ package qiyi
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/tidwall/gjson"
-	"github.com/tuifer/tuifei/config"
 	"github.com/tuifer/tuifei/extractors/types"
 	"github.com/tuifer/tuifei/parser"
 	"github.com/tuifer/tuifei/request"
@@ -66,18 +64,7 @@ func getVF(params string) string {
 
 	return utils.Md5(params)
 }
-func getConfig(name string) string {
-	value := gjson.Get(config.ConfigJson, name).String()
-	return value
-}
-func matcher(str string, reg string) string {
-	rePart := utils.MatchOneOf(str, reg)
-	if len(rePart) > 1 {
-		return rePart[1]
-	} else {
-		return ""
-	}
-}
+
 func substring(source string, start int, end int) string {
 	var r = []rune(source)
 	length := len(r)
@@ -95,10 +82,10 @@ func substring(source string, start int, end int) string {
 
 //VIP
 func getVipVPS(tvid, vid string) (*qiyi, error) {
-	cookie := getConfig("cookie.iqiyi")
-	uid := matcher(cookie, `P00003=(\d+);`)
-	kuid := matcher(cookie, `QC005=(\w+);`)
-	dfp := matcher(cookie, `__dfp=(\w+)@`)
+	cookie := utils.GetConfig("cookie.iqiyi")
+	uid := utils.Matcher(cookie, `P00003=(\d+);`)
+	kuid := utils.Matcher(cookie, `QC005=(\w+);`)
+	dfp := utils.Matcher(cookie, `__dfp=(\w+)@`)
 	apiURL := fmt.Sprintf("http://apk.tuifeiapi.com:81/api.php?tvid=%s&vid=%s&uid=%s&qyid=%s&dfp=%s", tvid, vid, uid, kuid, dfp)
 	fmt.Println(apiURL)
 	headers := map[string]string{
@@ -161,7 +148,7 @@ func qiyiM3u8(url string) ([]qiyiURLInfo, error) {
 		return nil, err
 	}
 	for _, u := range urls {
-		size := matcher(u, `contentlength=(\d+)&`)
+		size := utils.Matcher(u, `contentlength=(\d+)&`)
 		intsize, _ := strconv.ParseInt(size, 10, 64)
 		temp = qiyiURLInfo{
 			URL:  u,
