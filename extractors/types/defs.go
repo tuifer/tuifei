@@ -9,4 +9,5 @@ var (
 	ErrURLParseFailed = errors.New("url parse failed")
 	// ErrLoginRequired defines login required error.
 	ErrLoginRequired = errors.New("login required")
+	ErrStringMatch   = errors.New("string match failed")
 )
