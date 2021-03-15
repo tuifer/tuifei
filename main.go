@@ -85,9 +85,9 @@ var (
 
 func init() {
 	flag.BoolVar(&version, "v", false, "Show version")
-	flag.BoolVar(&debug, "d", false, "Debug mode")
-	flag.BoolVar(&infoOnly, "i", false, "Information only")
-	flag.BoolVar(&extractedData, "j", false, "Print extracted data")
+	flag.BoolVar(&debug, "d", getConfigBool("debug"), "Debug mode")
+	flag.BoolVar(&infoOnly, "i", getConfigBool("infoOnly"), "Information only")
+	flag.BoolVar(&extractedData, "j", getConfigBool("extractedData"), "Print extracted data")
 
 	flag.StringVar(&cookie, "c", "", "Cookie")
 	flag.BoolVar(&playlist, "p", false, "Download playlist")
@@ -236,7 +236,8 @@ func main() {
 	if len(args) < 1 {
 		fmt.Println("Too few arguments")
 		fmt.Println("Usage: tuifei [args] URLs...")
-		flag.PrintDefaults()
+
+		//flag.PrintDefaults()
 		return
 	}
 

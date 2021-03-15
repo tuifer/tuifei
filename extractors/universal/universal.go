@@ -44,7 +44,6 @@ func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, er
 		{
 			Site:    "Universal",
 			Title:   filename,
-			VideoId: filename,
 			Type:    types.DataType(contentType),
 			Streams: streams,
 			URL:     url,

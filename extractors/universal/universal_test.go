@@ -3,8 +3,8 @@ package universal
 import (
 	"testing"
 
-	"github.com/tuifer/tuifei/extractors/types"
-	"github.com/tuifer/tuifei/test"
+	"github.com/iawia002/annie/extractors/types"
+	"github.com/iawia002/annie/test"
 )
 
 func TestDownload(t *testing.T) {

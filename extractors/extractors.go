@@ -1,6 +1,7 @@
 package extractors
 
 import (
+	"github.com/tuifer/tuifei/extractors/universal"
 	"net/url"
 	"strings"
 
@@ -9,24 +10,18 @@ import (
 	"github.com/tuifer/tuifei/extractors/douyin"
 	"github.com/tuifer/tuifei/extractors/douyu"
 	"github.com/tuifer/tuifei/extractors/facebook"
-	"github.com/tuifer/tuifei/extractors/geekbang"
 	"github.com/tuifer/tuifei/extractors/haokan"
 	"github.com/tuifer/tuifei/extractors/instagram"
 	"github.com/tuifer/tuifei/extractors/iqiyi"
 	"github.com/tuifer/tuifei/extractors/mgtv"
 	"github.com/tuifer/tuifei/extractors/miaopai"
 	"github.com/tuifer/tuifei/extractors/netease"
-	"github.com/tuifer/tuifei/extractors/pixivision"
-	"github.com/tuifer/tuifei/extractors/pornhub"
 	"github.com/tuifer/tuifei/extractors/qiyi"
 	"github.com/tuifer/tuifei/extractors/qq"
 	"github.com/tuifer/tuifei/extractors/tangdou"
 	"github.com/tuifer/tuifei/extractors/tiktok"
-	"github.com/tuifer/tuifei/extractors/tumblr"
 	"github.com/tuifer/tuifei/extractors/twitter"
 	"github.com/tuifer/tuifei/extractors/types"
-	"github.com/tuifer/tuifei/extractors/udn"
-	"github.com/tuifer/tuifei/extractors/universal"
 	"github.com/tuifer/tuifei/extractors/vimeo"
 	"github.com/tuifer/tuifei/extractors/weibo"
 	"github.com/tuifer/tuifei/extractors/xvideos"
@@ -44,34 +39,29 @@ func init() {
 	extractorMap = map[string]types.Extractor{
 		"": universal.New(), // universal extractor
 
-		"douyin":     douyinExtractor,
-		"iesdouyin":  douyinExtractor,
-		"bilibili":   bilibili.New(),
-		"pixivision": pixivision.New(),
-		"youku":      youku.New(),
-		"youtube":    youtubeExtractor,
-		"youtu":      youtubeExtractor, // youtu.be
-		"iqiyi":      qiyi.New(),
-		"qiyi":       iqiyi.New(),
-		"mgtv":       mgtv.New(),
-		"tangdou":    tangdou.New(),
-		"tumblr":     tumblr.New(),
-		"vimeo":      vimeo.New(),
-		"facebook":   facebook.New(),
-		"douyu":      douyu.New(),
-		"miaopai":    miaopai.New(),
-		"163":        netease.New(),
-		"weibo":      weibo.New(),
-		"instagram":  instagram.New(),
-		"twitter":    twitter.New(),
-		"qq":         qq.New(),
-		"geekbang":   geekbang.New(),
-		"pornhub":    pornhub.New(),
-		"xvideos":    xvideos.New(),
-		"udn":        udn.New(),
-		"tiktok":     tiktok.New(),
-		"haokan":     haokan.New(),
-		"acfun":      acfun.New(),
+		"douyin":    douyinExtractor,
+		"iesdouyin": douyinExtractor,
+		"bilibili":  bilibili.New(),
+		"youku":     youku.New(),
+		"youtube":   youtubeExtractor,
+		"youtu":     youtubeExtractor, // youtu.be
+		"iqiyi":     qiyi.New(),
+		"qiyi":      iqiyi.New(),
+		"mgtv":      mgtv.New(),
+		"tangdou":   tangdou.New(),
+		"vimeo":     vimeo.New(),
+		"facebook":  facebook.New(),
+		"douyu":     douyu.New(),
+		"miaopai":   miaopai.New(),
+		"163":       netease.New(),
+		"weibo":     weibo.New(),
+		"instagram": instagram.New(),
+		"twitter":   twitter.New(),
+		"qq":        qq.New(),
+		"xvideos":   xvideos.New(),
+		"tiktok":    tiktok.New(),
+		"haokan":    haokan.New(),
+		"acfun":     acfun.New(),
 	}
 }
 func Domain(u string) (string, error) {
