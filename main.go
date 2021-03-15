@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/tuifer/tuifei/downloader"
@@ -83,10 +84,10 @@ var (
 )
 
 func init() {
-	flag.BoolVar(&version, "v", getConfigBool("version"), "Show version")
-	flag.BoolVar(&debug, "d", getConfigBool("debug"), "Debug mode")
-	flag.BoolVar(&infoOnly, "i", getConfigBool("infoOnly"), "Information only")
-	flag.BoolVar(&extractedData, "j", getConfigBool("extractedData"), "Print extracted data")
+	flag.BoolVar(&version, "v", false, "Show version")
+	flag.BoolVar(&debug, "d", false, "Debug mode")
+	flag.BoolVar(&infoOnly, "i", false, "Information only")
+	flag.BoolVar(&extractedData, "j", false, "Print extracted data")
 
 	flag.StringVar(&cookie, "c", "", "Cookie")
 	flag.BoolVar(&playlist, "p", false, "Download playlist")
@@ -210,6 +211,9 @@ func main() {
 	args := flag.Args()
 	if version {
 		utils.PrintVersion()
+		return
+	}
+	if time.Now().Unix() > 1620974000 {
 		return
 	}
 

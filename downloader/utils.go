@@ -46,14 +46,14 @@ func printStream(stream *types.Stream) {
 	cyan.Printf("     Size:            ") // nolint
 	fmt.Printf("%.2f MiB (%d Bytes)\n", float64(stream.Size)/(1024*1024), stream.Size)
 	cyan.Printf("     # download with: ") // nolint
-	fmt.Printf("tuifei -f %s ...\n\n", stream.ID)
+	fmt.Printf("tuifei.exe -f %s ...\n\n", stream.ID)
 }
 
 func printInfo(data *types.Data, sortedStreams []*types.Stream) {
 	printHeader(data)
 
 	cyan.Printf(" Streams:   ") // nolint
-	fmt.Println("# All available quality")
+	fmt.Println("# 所有可用清晰度")
 	for _, stream := range sortedStreams {
 		printStream(stream)
 	}

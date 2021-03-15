@@ -47,18 +47,17 @@ type youkuVideo struct {
 type youkuShow struct {
 	Title string `json:"title"`
 }
-type datas struct {
+type data struct {
 	Video  youkuVideo `json:"video"`
 	Stream []stream   `json:"stream"`
 	Show   youkuShow  `json:"show"`
 	Error  errorData  `json:"error"`
 }
-type data struct {
-	Data datas `json:"data"`
-}
 
 type youkuData struct {
-	Data data `json:"data"`
+	Data struct {
+		Data data `json:"data"`
+	} `json:"data"`
 }
 
 const youkuReferer = "https://v.youku.com"
@@ -245,44 +244,41 @@ func youkuM3u8(url string) ([]youkuURLInfo, error) {
 	}
 	return data, nil
 }
-
-func genData(youkuData datas) map[string]*types.Stream {
+func genData(youkuData data) map[string]*types.Stream {
 	var (
 		streamString string
 		quality      string
 	)
 	streams := make(map[string]*types.Stream, len(youkuData.Stream))
-
-	for _, strea := range youkuData.Stream {
-		if strea.AudioLang == "default" {
-			streamString = strea.Type
+	for _, stream := range youkuData.Stream {
+		if stream.AudioLang == "default" {
+			streamString = stream.Type
 			quality = fmt.Sprintf(
-				"%s %dx%d", strea.Type, strea.Width, strea.Height,
+				"%s %dx%d", stream.Type, stream.Width, stream.Height,
 			)
 		} else {
-			streamString = fmt.Sprintf("%s-%s", strea.Type, strea.AudioLang)
+			streamString = fmt.Sprintf("%s-%s", stream.Type, stream.AudioLang)
 			quality = fmt.Sprintf(
-				"%s %dx%d %s", strea.Type, strea.Width, strea.Height,
-				getAudioLang(strea.AudioLang),
+				"%s %dx%d %s", stream.Type, stream.Width, stream.Height,
+				getAudioLang(stream.AudioLang),
 			)
 		}
 
-		m3u8URLs, err := youkuM3u8(strea.M3u8Url)
-		if err != nil {
-			return nil
-		}
-		urls := make([]*types.Part, len(m3u8URLs))
-		for index, u := range m3u8URLs {
+		ext := strings.Split(
+			strings.Split(stream.Segs[0].URL, "?")[0],
+			".",
+		)
+		urls := make([]*types.Part, len(stream.Segs))
+		for index, data := range stream.Segs {
 			urls[index] = &types.Part{
-				URL:  u.URL,
-				Size: u.Size,
-				Ext:  "ts",
+				URL:  data.URL,
+				Size: data.Size,
+				Ext:  ext[len(ext)-1],
 			}
 		}
-		fmt.Println(streamString)
 		streams[streamString] = &types.Stream{
 			Parts:   urls,
-			Size:    strea.Size,
+			Size:    stream.Size,
 			Quality: quality,
 		}
 	}
