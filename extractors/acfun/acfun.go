@@ -2,14 +2,11 @@ package acfun
 
 import (
 	"fmt"
-	"net/url"
-	"regexp"
-
 	jsoniter "github.com/json-iterator/go"
 	"github.com/tuifer/tuifei/extractors/types"
 	"github.com/tuifer/tuifei/parser"
-	"github.com/tuifer/tuifei/request"
 	"github.com/tuifer/tuifei/utils"
+	"net/url"
 )
 
 const (
@@ -23,7 +20,6 @@ const (
 	bangumiVideoURL = "https://%s/mediacloud/acfun/acfun_video/hls/"
 
 	referer = "https://www.acfun.cn"
-	host    = "https://www.acfun.cn"
 )
 
 var (
@@ -39,7 +35,7 @@ func New() types.Extractor {
 }
 
 func (e *extractor) Extract(URL string, option types.Options) ([]*types.Data, error) {
-	html, err := request.GetByte(URL, referer, nil)
+	html, err := utils.GetBodyByUrlWithCookie(URL, utils.GetConfig("cookie.acfun"), referer) //request.GetByte(URL, referer, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +89,7 @@ func (e *extractor) Extract(URL string, option types.Options) ([]*types.Data, er
 func concatURL(epData *episodeData) string {
 	return fmt.Sprintf(bangumiHTMLURL, epData.BangumiID, epData.ItemID)
 }
-func extractNomarl(html []byte, videoId string, URL string) *types.Data {
+func extractNomarl(html string, videoId string, URL string) *types.Data {
 	//resolvingNomarlData
 	vInfo, err := resolvingNomarlData(html)
 	if err != nil {
@@ -149,10 +145,10 @@ func extractNomarl(html []byte, videoId string, URL string) *types.Data {
 	}
 	return data
 }
-func resolvingNomarlData(html []byte) (*videoInfo, error) {
+func resolvingNomarlData(html string) (*videoInfo, error) {
 	bgData := &bangumiData{}
 	vInfo := &videoInfo{}
-	groups := utils.MatchOneOf(string(html), `window.pageInfo = window.videoInfo = (.+);`) //pattern.FindSubmatch(html)
+	groups := utils.MatchOneOf(html, `window.pageInfo = window.videoInfo = (.+);`) //pattern.FindSubmatch(html)
 	if groups == nil {
 		return nil, types.ErrStringMatch
 	}
@@ -168,7 +164,7 @@ func resolvingNomarlData(html []byte) (*videoInfo, error) {
 }
 func extractBangumi(URL string, epData *episodeData, option types.Options) *types.Data {
 	var err error
-	html, err := request.GetByte(URL, referer, nil)
+	html, err := utils.GetBodyByUrlWithCookie(URL, utils.GetConfig("cookie.acfun"), referer) // request.GetByte(URL, referer, nil)
 	if err != nil {
 		return types.EmptyData(URL, err)
 	}
@@ -231,10 +227,10 @@ func extractBangumi(URL string, epData *episodeData, option types.Options) *type
 	return data
 }
 
-func resolvingData(html []byte) (*bangumiData, *videoInfo, error) {
+func resolvingData(html string) (*bangumiData, *videoInfo, error) {
 	bgData := &bangumiData{}
 	vInfo := &videoInfo{}
-	groups := utils.MatchOneOf(string(html), bangumiDataPattern) //pattern.FindSubmatch(html)
+	groups := utils.MatchOneOf(html, bangumiDataPattern) //pattern.FindSubmatch(html)
 	if groups == nil {
 		return nil, nil, types.ErrStringMatch
 	}
@@ -249,12 +245,10 @@ func resolvingData(html []byte) (*bangumiData, *videoInfo, error) {
 	return bgData, vInfo, nil
 }
 
-func resolvingEpisodes(html []byte) (*episodeList, error) {
+func resolvingEpisodes(html string) (*episodeList, error) {
 	list := &episodeList{}
-	pattern, _ := regexp.Compile(bangumiListPattern)
-
-	groups := pattern.FindSubmatch(html)
-	err := jsoniter.Unmarshal(groups[1], list)
+	groups := utils.MatchOneOf(html, bangumiListPattern)
+	err := jsoniter.Unmarshal([]byte(groups[1]), list)
 	if err != nil {
 		return nil, err
 	}

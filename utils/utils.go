@@ -6,6 +6,7 @@ import (
 	"crypto/md5"
 	"errors"
 	"fmt"
+	"github.com/idoubi/goz"
 	"io"
 	"net/url"
 	"os"
@@ -21,6 +22,8 @@ import (
 	"github.com/tuifer/tuifei/config"
 	"github.com/tuifer/tuifei/request"
 )
+
+const AGENT = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.96 Safari/537.36"
 
 // GetStringFromJSON get the string value from json path
 func GetStringFromJSON(json, path string) string {
@@ -71,15 +74,25 @@ func FileSize(filePath string) (int64, bool, error) {
 
 // Domain get the domain of given URL
 func Domain(url string) string {
-	domainPattern := `([a-z0-9][-a-z0-9]{0,62})\.` +
-		`(com\.cn|com\.hk|` +
-		`cn|com|net|edu|gov|biz|org|info|pro|name|xxx|xyz|be|` +
-		`me|top|cc|tv|tt)`
-	domain := MatchOneOf(url, domainPattern)
-	if domain != nil {
-		return domain[1]
+	return Matcher(url, `([a-z0-9][-a-z0-9]{0,62})\.`+
+		`(com\.cn|com\.hk|`+
+		`cn|com|net|edu|gov|biz|org|info|pro|name|xxx|xyz|be|`+
+		`me|top|cc|tv|tt)`)
+}
+func GetBodyByUrlWithCookie(url string, cookie string, referUrl string) (string, error) {
+	cli := goz.NewClient()
+	resp, err := cli.Get(url, goz.Options{
+		Headers: map[string]interface{}{
+			"Cookie":     cookie,
+			"Referer":    referUrl,
+			"User-Agent": AGENT,
+		},
+	})
+	if err != nil {
+		return "", err
 	}
-	return ""
+	body, _ := resp.GetBody()
+	return string(body), nil
 }
 
 // LimitLength Handle overly long strings

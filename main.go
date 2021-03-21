@@ -4,19 +4,20 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/fatih/color"
+	"github.com/lxn/walk"
 	"github.com/tidwall/gjson"
 	"github.com/tuifer/tuifei/config"
-	"io/ioutil"
-	"os"
-	"strings"
-	"time"
-
-	"github.com/fatih/color"
 	"github.com/tuifer/tuifei/downloader"
 	"github.com/tuifer/tuifei/extractors"
 	"github.com/tuifer/tuifei/extractors/types"
 	"github.com/tuifer/tuifei/request"
 	"github.com/tuifer/tuifei/utils"
+	"github.com/tuifer/tuifei/walker"
+	"io/ioutil"
+	"os"
+	"strings"
+	"time"
 )
 
 var (
@@ -82,6 +83,7 @@ var (
 	// File name of each bilibili episode doesn't include the playlist title
 	episodeTitleOnly bool
 )
+var mw = walker.Init()
 
 func init() {
 	flag.BoolVar(&version, "v", false, "Show version")
@@ -107,7 +109,7 @@ func init() {
 	)
 
 	flag.BoolVar(&multiThread, "m", false, "Multiple threads to download single video")
-	flag.IntVar(&retryTimes, "retry", 10, "How many times to retry when the download failed")
+	flag.IntVar(&retryTimes, "retry", 3, "How many times to retry when the download failed")
 	flag.IntVar(&chunkSizeMB, "cs", 0, "HTTP chunk size for downloading (in MB)")
 	flag.IntVar(&threadNumber, "n", 10, "The number of download thread (only works for multiple-parts video)")
 
@@ -138,6 +140,7 @@ func download(videoURL string) error {
 		YoukuCcode:       youkuCcode,
 		YoukuCkey:        youkuCkey,
 		YoukuPassword:    youkuPassword,
+		MyMain:           mw,
 	})
 	if err != nil {
 		// if this error occurs, it means that an error occurred before actually starting to extract data
@@ -155,11 +158,12 @@ func download(videoURL string) error {
 	}
 	domain, err := extractors.Domain(videoURL)
 	//替换outputPath 里域名和videoid
-	outputPath = strings.Replace(outputPath, "{#doamin}", domain, 1)
+	outputPath = strings.Replace(getConfig("outputPath"), "{#doamin}", domain, 1)
+	mw.LogAppend(fmt.Sprintf("outputPath: %s ", outputPath))
 	defaultDownloader := downloader.New(downloader.Options{
 		InfoOnly:       infoOnly,
 		Stream:         stream,
-		Refer:          refer,
+		Refer:          videoURL,
 		OutputPath:     outputPath,
 		OutputName:     outputName,
 		FileNameLength: fileNameLength,
@@ -172,6 +176,7 @@ func download(videoURL string) error {
 		Aria2Token:     aria2Token,
 		Aria2Method:    aria2Method,
 		Aria2Addr:      aria2Addr,
+		MyMain:         mw,
 	})
 	errors := make([]error, 0)
 	for _, item := range data {
@@ -179,8 +184,11 @@ func download(videoURL string) error {
 			// if this error occurs, the preparation step is normal, but the data extraction is wrong.
 			// the data is an empty struct.
 			errors = append(errors, item.Err)
+			fmt.Print("defaultDownloader错误")
+			fmt.Print(item)
 			continue
 		}
+		fmt.Print("%s开始下载", item.URL)
 		if err = defaultDownloader.Download(item); err != nil {
 			errors = append(errors, err)
 		}
@@ -199,14 +207,32 @@ func getConfig(name string) string {
 	return value
 }
 func printError(url string, err error) {
+	mw.LogAppend(fmt.Sprintf("Downloading %s error:\n%s\n", url, err))
 	fmt.Fprintf(
 		color.Output,
 		"Downloading %s error:\n%s\n",
 		color.CyanString("%s", url), color.RedString("%v", err),
 	)
 }
+func parseUrl(videoURL string) {
+	domain, _ := extractors.Domain(videoURL)
+	cookie = getConfig("cookie." + domain)
+	request.SetOptions(request.Options{
+		RetryTimes: retryTimes,
+		Cookie:     cookie,
+		Refer:      refer,
+		Debug:      debug,
+	})
+	pos := utils.Utf8Index(videoURL, ".html")
+	if pos > 0 {
+		videoURL = videoURL[0:pos] + ".html"
+	}
+	if err := download(videoURL); err != nil {
+		printError(videoURL, err)
+	}
 
-func main() {
+}
+func init() {
 	flag.Parse()
 	args := flag.Args()
 	if version {
@@ -224,7 +250,9 @@ func main() {
 	if file != "" {
 		f, err := os.Open(file)
 		if err != nil {
+			mw.LogAppend(fmt.Sprintf("Error %v", err))
 			fmt.Printf("Error %v", err)
+
 			return
 		}
 		defer f.Close() // nolint
@@ -236,7 +264,7 @@ func main() {
 	if len(args) < 1 {
 		fmt.Println("Too few arguments")
 		fmt.Println("Usage: tuifei [args] URLs...")
-
+		mw.LogAppend("Usage: tuifei [args] URLs...")
 		//flag.PrintDefaults()
 		return
 	}
@@ -283,7 +311,6 @@ func main() {
 		Debug:      debug,
 	})
 
-	var isErr bool
 	for _, videoURL := range args {
 		//所有.html的 删除掉 .html后内容
 		pos := utils.Utf8Index(videoURL, ".html")
@@ -292,10 +319,41 @@ func main() {
 		}
 		if err := download(videoURL); err != nil {
 			printError(videoURL, err)
-			isErr = true
 		}
 	}
-	if isErr {
-		os.Exit(1)
-	}
+}
+
+func main() {
+	mw.PBar.SetVisible(false)
+	mw.Query.Clicked().Attach(func() {
+		mw.PBar.SetValue(0)
+		if len(mw.InputUrl.Text()) < 3 {
+			walk.MsgBox(mw, "提示", "请输入有效的视频网址", walk.MsgBoxIconInformation)
+			return
+		}
+		mw.LogAppend(fmt.Sprintf("开始解析网址：%s", mw.InputUrl.Text()))
+		go func() {
+			mw.PBar.SetVisible(false)
+			infoOnly = true
+			parseUrl(mw.InputUrl.Text())
+			mw.SetList(config.GetThisStreams())
+		}()
+	})
+	mw.Down.Clicked().Attach(func() {
+		if len(mw.InputUrl.Text()) < 3 {
+			walk.MsgBox(mw, "提示", "请输入有效的视频网址", walk.MsgBoxIconInformation)
+			return
+		}
+		mw.LogAppend(fmt.Sprintf("开始下载网址：%s", mw.InputUrl.Text()))
+		go func() {
+			mw.PBar.SetValue(0)
+			mw.PBar.SetVisible(true)
+			infoOnly = false
+			//设置清晰度为选择清晰度
+			stream = mw.CurKey
+			parseUrl(mw.InputUrl.Text())
+		}()
+	})
+	mw.Show()
+	mw.Run()
 }

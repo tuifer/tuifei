@@ -10,7 +10,6 @@ import (
 	"github.com/tuifer/tuifei/request"
 	"github.com/tuifer/tuifei/utils"
 	"math/rand"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -201,7 +200,7 @@ func (e *extractor) Extract(url string, _ types.Options) ([]*types.Data, error) 
 				Ext:  ext,
 			}
 		}
-		streams[strconv.Itoa(video.Bid)] = &types.Stream{
+		streams[video.Scrsz] = &types.Stream{
 			Parts:   urls,
 			Size:    video.Vsize,
 			Quality: video.Scrsz,

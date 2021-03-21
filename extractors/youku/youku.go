@@ -64,7 +64,6 @@ const youkuReferer = "https://v.youku.com"
 const youkuTokenApi = "http://acs.youku.com/h5/mtop.youku.play.ups.appinfo.get/1.1/?appKey=24679788&api=mtop.youku.play.ups.appinfo.get"
 const youkuUrl = "http://acs.youku.com/h5/mtop.youku.play.ups.appinfo.get/1.1/?"
 const youkuApi = "mtop.youku.play.ups.appinfo.get"
-const Angent = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.96 Safari/537.36"
 
 func getAudioLang(lang string) string {
 	var youkuAudioLang = map[string]string{
@@ -89,7 +88,7 @@ func genCookie(cookie string) (string, error) {
 	resp, err := cli.Get(youkuTokenApi, goz.Options{
 		Headers: map[string]interface{}{
 			"Cookie":     cookie,
-			"User-Agent": Angent,
+			"User-Agent": utils.AGENT,
 		},
 	})
 	if err != nil {
@@ -102,21 +101,6 @@ func genCookie(cookie string) (string, error) {
 		str.WriteString(v[0:pos] + ";")
 	}
 	return str.String(), nil
-}
-func getApiStr(url string, cookie string, referUrl string) (string, error) {
-	cli := goz.NewClient()
-	resp, err := cli.Get(url, goz.Options{
-		Headers: map[string]interface{}{
-			"Cookie":     cookie,
-			"Referer":    referUrl,
-			"User-Agent": Angent,
-		},
-	})
-	if err != nil {
-		return "", err
-	}
-	body, _ := resp.GetBody()
-	return string(body), nil
 }
 
 func youkuUps(vid string, option types.Options) (*youkuData, error) {
@@ -159,12 +143,14 @@ func youkuUps(vid string, option types.Options) (*youkuData, error) {
 		if ccode == "0103010102" {
 			utid = generateUtdid()
 		}
-		url = fmt.Sprintf("%sappKey=%s&t=%s&sign=%s&api=%s&data=%s", youkuUrl, appKey, client_ts, sign, youkuApi, netURL.QueryEscape(postStr))
+		url = fmt.Sprintf("%sjsv=2.5.8&appKey=%s&t=%s&sign=%s&api=%s&data=%s", youkuUrl, appKey, client_ts, sign, youkuApi, netURL.QueryEscape(postStr))
 		if option.YoukuPassword != "" {
 			url = fmt.Sprintf("%s&password=%s", url, option.YoukuPassword)
 		}
+		fmt.Println(url)
 		//fmt.Println(url)
-		html, err := getApiStr(url, newCookie+cookie, referUrl)
+		html, err := utils.GetBodyByUrlWithCookie(url, newCookie+cookie, referUrl)
+		fmt.Println(html)
 		if err != nil {
 			return nil, err
 		}

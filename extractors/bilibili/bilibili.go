@@ -96,6 +96,7 @@ func genParts(dashData *dashInfo, quality int, referer string) ([]*types.Part, e
 				if err != nil {
 					return nil, err
 				}
+				//fmt.Println("%s 大小：%s",stream.BaseURL,strconv.Itoa(int(s)))
 				parts[0] = &types.Part{
 					URL:  stream.BaseURL,
 					Size: s,
@@ -202,7 +203,7 @@ func extractNormalVideo(url, html string, extractOption types.Options) ([]*types
 	if err != nil {
 		return nil, err
 	}
-	if !extractOption.Playlist {
+	if extractOption.Playlist == false {
 		// handle URL that has a playlist, mainly for unified titles
 		// <h1> tag does not include subtitles
 		// bangumi doesn't need this
@@ -235,6 +236,7 @@ func extractNormalVideo(url, html string, extractOption types.Options) ([]*types
 		} else {
 			options.subtitle = page.Part
 		}
+		extractOption.MyMain.LogAppend("执行单级下载:" + url)
 		return []*types.Data{bilibiliDownload(options, extractOption)}, nil
 	}
 
@@ -285,7 +287,7 @@ func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, er
 
 	// set thread number to 1 manually to avoid http 412 error
 	option.ThreadNumber = 1
-	fmt.Printf("Warning: Multi thread download is no longer supported by BiliBili, use single thread instead.\n")
+	//fmt.Printf("Warning: Multi thread download is no longer supported by BiliBili, use single thread instead.\n")
 
 	if strings.Contains(url, "bangumi") {
 		// handle bangumi
@@ -318,11 +320,12 @@ func bilibiliDownload(options bilibiliOptions, extractOption types.Options) *typ
 	if err != nil {
 		return types.EmptyData(options.url, err)
 	}
+	extractOption.MyMain.LogAppend("获取Api token接口成功:" + api)
 	jsonString, err := request.Get(api, referer, nil)
 	if err != nil {
 		return types.EmptyData(options.url, err)
 	}
-
+	//extractOption.MyMain.LogAppend("jsonString :"+jsonString)
 	var data dash
 	err = json.Unmarshal([]byte(jsonString), &data)
 	if err != nil {
@@ -348,41 +351,25 @@ func bilibiliDownload(options bilibiliOptions, extractOption types.Options) *typ
 			}
 			audios[stream.ID] = stream.BaseURL
 		}
-		s, err := request.Size(audios[audioID], referer)
+		//s, err := request.Size(audios[audioID], referer)
 		if err != nil {
 			return types.EmptyData(options.url, err)
 		}
 		audioPart = &types.Part{
 			URL:  audios[audioID],
-			Size: s,
+			Size: 0,
 			Ext:  "m4a",
 		}
 	}
 
 	streams := make(map[string]*types.Stream, len(dashData.Quality))
+
 	for _, q := range dashData.Quality {
 		// Avoid duplicate streams
 		if _, ok := streams[strconv.Itoa(q)]; ok {
 			continue
 		}
-		api, err := genAPI(options.aid, options.cid, q, options.bvid, options.bangumi, extractOption.Cookie)
-		if err != nil {
-			return types.EmptyData(options.url, err)
-		}
-		jsonString, err := request.Get(api, referer, nil)
-		if err != nil {
-			return types.EmptyData(options.url, err)
-		}
 
-		err = json.Unmarshal([]byte(jsonString), &data)
-		if err != nil {
-			return types.EmptyData(options.url, err)
-		}
-		if data.Data.Description == nil {
-			dashData = data.Result
-		} else {
-			dashData = data.Data
-		}
 		parts, err := genParts(&dashData, q, options.url)
 		if parts == nil {
 			continue
@@ -424,7 +411,7 @@ func bilibiliDownload(options bilibiliOptions, extractOption types.Options) *typ
 	return &types.Data{
 		Site:    "哔哩哔哩 bilibili.com",
 		Title:   title,
-		VideoId: fmt.Sprintf("%s", options.cid),
+		VideoId: strconv.Itoa(options.cid),
 		Type:    types.DataTypeVideo,
 		Streams: streams,
 		Caption: &types.Part{

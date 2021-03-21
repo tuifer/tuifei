@@ -111,6 +111,7 @@ func Extract(u string, option types.Options) ([]*types.Data, error) {
 	}
 	extractor := extractorMap[domain]
 	videos, err := extractor.Extract(u, option)
+
 	if err != nil {
 		return nil, err
 	}

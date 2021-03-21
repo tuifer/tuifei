@@ -2,6 +2,7 @@ package qiyi
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/tuifer/tuifei/extractors/types"
 	"github.com/tuifer/tuifei/parser"
@@ -10,7 +11,6 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type qiyi struct {
@@ -88,36 +88,13 @@ func getVipVPS(tvid, vid string) (*qiyi, error) {
 	dfp := utils.Matcher(cookie, `__dfp=(\w+)@`)
 	apiURL := fmt.Sprintf("http://apk.tuifeiapi.com:81/api.php?tvid=%s&vid=%s&uid=%s&qyid=%s&dfp=%s", tvid, vid, uid, kuid, dfp)
 	fmt.Println(apiURL)
-	headers := map[string]string{
-		"Cookie":     cookie,
-		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36",
-	}
 	infoUrl, err := request.Get(apiURL, qiyiReferer, nil)
 	if err != nil {
 		return nil, err
 	}
-	info, err := request.Get(infoUrl, qiyiReferer, headers)
+	info, err := utils.GetBodyByUrlWithCookie(infoUrl, cookie, qiyiReferer) //request.Get(infoUrl, qiyiReferer, headers)
 	info = substring(info, 20, utils.Utf8Index(info, ");}catch(e){};"))
-	data := new(qiyi)
-	if err := json.Unmarshal([]byte(info), data); err != nil {
-		return nil, err
-	}
-	return data, nil
-}
-func getVPS(tvid, vid string) (*qiyi, error) {
-	t := time.Now().Unix() * 1000
-	host := "http://cache.video.iqiyi.com"
-	params := fmt.Sprintf(
-		"/vps?tvid=%s&vid=%s&v=0&qypid=%s_12&src=01012001010000000000&t=%d&k_tag=1&k_uid=%s&rs=1",
-		tvid, vid, tvid, t, getMacID(),
-	)
-	vf := getVF(params)
-	apiURL := fmt.Sprintf("%s%s&vf=%s", host, params, vf)
-	fmt.Println(apiURL)
-	info, err := request.Get(apiURL, qiyiReferer, nil)
-	if err != nil {
-		return nil, err
-	}
+	fmt.Println(infoUrl)
 	data := new(qiyi)
 	if err := json.Unmarshal([]byte(info), data); err != nil {
 		return nil, err
@@ -225,7 +202,11 @@ func (e *extractor) Extract(url string, _ types.Options) ([]*types.Data, error) 
 	}
 
 	streams := make(map[string]*types.Stream)
-	fmt.Print(videoDatas.Data.PROGRAM.VIDEO)
+	fmt.Print(len(videoDatas.Data.PROGRAM.VIDEO))
+	if len(videoDatas.Data.PROGRAM.VIDEO) == 0 {
+		return nil, errors.New("m4s视频经过加密，无法有效下载")
+	}
+
 	for _, video := range videoDatas.Data.PROGRAM.VIDEO {
 		if len(video.Url) == 0 {
 			continue
@@ -242,7 +223,7 @@ func (e *extractor) Extract(url string, _ types.Options) ([]*types.Data, error) 
 				Ext:  "ts",
 			}
 		}
-		streams[strconv.Itoa(video.Bid)] = &types.Stream{
+		streams[video.Scrsz] = &types.Stream{
 			Parts:   urls,
 			Size:    video.Vsize,
 			Quality: video.Scrsz,

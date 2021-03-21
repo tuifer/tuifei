@@ -5,6 +5,8 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/tuifer/tuifei/config"
+	"github.com/tuifer/tuifei/walker"
 	"io"
 	"net/http"
 	"os"
@@ -12,11 +14,11 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/cheggaaa/pb"
-
 	"github.com/tuifer/tuifei/extractors/types"
 	"github.com/tuifer/tuifei/request"
 	"github.com/tuifer/tuifei/utils"
@@ -41,6 +43,7 @@ type Options struct {
 	Aria2Token  string
 	Aria2Method string
 	Aria2Addr   string
+	MyMain      *walker.MyMainWindow
 }
 
 // Downloader is the default downloader.
@@ -92,21 +95,36 @@ func (downloader *Downloader) caption(url, fileName, ext string) error {
 	}
 	return nil
 }
-
+func (downloader *Downloader) progress(n int64) {
+	downloader.option.MyMain.Synchronize(func() {
+		if err := downloader.option.MyMain.ProgressIndicator().SetCompleted(uint32(n)); err != nil {
+			fmt.Println(err)
+		}
+	})
+	downloader.option.MyMain.Synchronize(func() {
+		downloader.option.MyMain.PBar.SetValue(downloader.option.MyMain.PBar.Value() + int(n))
+	})
+}
 func (downloader *Downloader) writeFile(url string, file *os.File, headers map[string]string) (int64, error) {
+	//downloader.option.MyMain.LogAppend(fmt.Sprintf("开始下载分段网址%s：",url))
+	//downloader.option.MyMain.LogAppend(fmt.Sprintf("文件保存路径：%s",file))
 	res, err := request.Request(http.MethodGet, url, nil, headers)
 	if err != nil {
 		return 0, err
 	}
 	defer res.Body.Close() // nolint
 
-	writer := io.MultiWriter(file, downloader.bar)
 	// Note that io.Copy reads 32kb(maximum) from input and writes them to output, then repeats.
 	// So don't worry about memory.
+	writer := io.MultiWriter(file, downloader.bar)
 	written, copyErr := io.Copy(writer, res.Body)
+	downloader.progress(written)
 	if copyErr != nil && copyErr != io.EOF {
+		downloader.option.MyMain.LogAppend(fmt.Sprintf("文件复制出错: %s", copyErr))
 		return written, fmt.Errorf("file copy error: %s", copyErr)
 	}
+	//downloader.option.MyMain.LogAppend(fmt.Sprintf("分段网址%s下载成功：",url))
+	//downloader.option.MyMain.PBar.SetValue(downloader.option.MyMain.PBar.Value() +int(written/1024))
 	return written, nil
 }
 
@@ -438,6 +456,7 @@ func parseFilePartMeta(filepath string, fileSize int64) (*FilePartMeta, error) {
 		return nil, err
 	}
 	if readSize < size {
+
 		return nil, fmt.Errorf("the file has been broked, please delete all part files and re-download")
 	}
 	err = binary.Read(bytes.NewBuffer(buf[:size]), binary.LittleEndian, meta)
@@ -485,7 +504,36 @@ func mergeMultiPart(filepath string, parts []*FilePartMeta) error {
 	err = os.Rename(tempFilePath, filepath)
 	return err
 }
+func copyBufCallback(dst io.Writer, src io.Reader, callback func(int64)) (written int64, err error) {
 
+	buf := make([]byte, 32*1024)
+
+	for {
+		nr, er := src.Read(buf)
+		if nr > 0 {
+			nw, ew := dst.Write(buf[0:nr])
+			if nw > 0 {
+				written += int64(nw)
+				callback(written)
+			}
+			if ew != nil {
+				err = ew
+				break
+			}
+			if nr != nw {
+				err = io.ErrShortWrite
+				break
+			}
+		}
+		if er != nil {
+			if er != io.EOF {
+				err = er
+			}
+			break
+		}
+	}
+	return written, err
+}
 func (downloader *Downloader) aria2(title string, stream *types.Stream) error {
 	rpcData := Aria2RPCData{
 		JSONRPC: "2.0",
@@ -502,6 +550,7 @@ func (downloader *Downloader) aria2(title string, stream *types.Stream) error {
 	for i := range urls {
 		rpcData.Params[1] = urls[i : i+1]
 		inputs.Out = fmt.Sprintf("%s[%d].%s", title, i, stream.Parts[0].Ext)
+
 		rpcData.Params[2] = &inputs
 		jsonData, err := json.Marshal(rpcData)
 		if err != nil {
@@ -530,10 +579,8 @@ func (downloader *Downloader) aria2(title string, stream *types.Stream) error {
 // Download download urls
 func (downloader *Downloader) Download(data *types.Data) error {
 	sortedStreams := genSortedStreams(data.Streams)
-	if downloader.option.InfoOnly {
-		printInfo(data, sortedStreams)
-		return nil
-	}
+	config.SetThisStreams(sortedStreams)
+	downloader.option.MyMain.EmptyStream()
 
 	title := downloader.option.OutputName
 	if title == "" {
@@ -542,6 +589,22 @@ func (downloader *Downloader) Download(data *types.Data) error {
 	title = utils.FileName(title, "", downloader.option.FileNameLength)
 
 	streamName := downloader.option.Stream
+	hasChose := false
+	for _, sortStrea := range sortedStreams { //判断 streamName是否在sortedStreams里
+		if streamName == sortStrea.ID {
+			hasChose = true
+			break
+		} else {
+			hasChose = false
+			continue
+		}
+	}
+	if hasChose == false {
+		streamName = ""
+	} else {
+		downloader.option.MyMain.LogAppend("清晰度选择：" + streamName)
+	}
+
 	if streamName == "" {
 		streamName = sortedStreams[0].ID
 	}
@@ -549,7 +612,18 @@ func (downloader *Downloader) Download(data *types.Data) error {
 	if !ok {
 		return fmt.Errorf("no stream named %s", streamName)
 	}
-
+	//downloader.option.MyMain.Synchronize(func() {
+	//	downloader.option.MyMain.ProgressIndicator().SetTotal(uint32(stream.Size/1024))
+	//})
+	//downloader.option.MyMain.Synchronize(func() {
+	//	downloader.option.MyMain.PBar.SetRange(0, int(stream.Size/1024))
+	//})
+	if downloader.option.InfoOnly {
+		downloader.option.MyMain.LogAppend("视频清晰度解析完毕")
+		printInfo(data, sortedStreams)
+		return nil
+	}
+	downloader.option.MyMain.LogAppend(fmt.Sprintf("当前选择下载视频文件大小%sMiB", strconv.Itoa(int(stream.Size/1048576))))
 	printStreamInfo(data, stream)
 
 	// download caption
@@ -573,11 +647,16 @@ func (downloader *Downloader) Download(data *types.Data) error {
 	}
 	// After the merge, the file size has changed, so we do not check whether the size matches
 	if mergedFileExists {
+		downloader.option.MyMain.LogAppend(fmt.Sprintf("%s: file already exists, skipping\n", mergedFilePath))
 		fmt.Printf("%s: file already exists, skipping\n", mergedFilePath)
 		return nil
 	}
 
 	downloader.bar = progressBar(stream.Size)
+	downloader.option.MyMain.Synchronize(func() {
+		downloader.option.MyMain.ProgressIndicator().SetTotal(uint32(stream.Size))
+		downloader.option.MyMain.PBar.SetRange(0, int(stream.Size))
+	})
 	downloader.bar.Start()
 	if len(stream.Parts) == 1 {
 		// only one fragment
@@ -628,14 +707,17 @@ func (downloader *Downloader) Download(data *types.Data) error {
 		return errs[0]
 	}
 	downloader.bar.Finish()
-
 	if data.Type != types.DataTypeVideo {
 		return nil
 	}
-
 	fmt.Printf("Merging video parts into %s\n", mergedFilePath)
+	downloader.option.MyMain.LogAppend(fmt.Sprintf("Merging video parts into %s\n", mergedFilePath))
 	if stream.Ext != "mp4" || stream.NeedMux {
 		return utils.MergeFilesWithSameExtension(parts, mergedFilePath)
 	}
-	return utils.MergeToMP4(parts, mergedFilePath, title)
+	err = utils.MergeToMP4(parts, mergedFilePath, title)
+	if err == nil {
+		downloader.option.MyMain.LogAppend(fmt.Sprintf("视频下载成功合并完毕 %s\n", mergedFilePath))
+	}
+	return err
 }
