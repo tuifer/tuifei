@@ -83,7 +83,7 @@ func genParts(dashData *dashInfo, quality int, referer string) ([]*types.Part, e
 		}
 		parts[0] = &types.Part{
 			URL:  url,
-			Size: dashData.DURL[0].Size,
+			Size: 0,
 			Ext:  ext,
 		}
 
@@ -92,14 +92,14 @@ func genParts(dashData *dashInfo, quality int, referer string) ([]*types.Part, e
 		checked := false
 		for _, stream := range dashData.Streams.Video {
 			if stream.ID == quality {
-				s, err := request.Size(stream.BaseURL, referer)
-				if err != nil {
-					return nil, err
-				}
+				//s, err := request.Size(stream.BaseURL, referer)
+				//if err != nil {
+				//	return nil, err
+				//}
 				//fmt.Println("%s 大小：%s",stream.BaseURL,strconv.Itoa(int(s)))
 				parts[0] = &types.Part{
 					URL:  stream.BaseURL,
-					Size: s,
+					Size: 0,
 					Ext:  "mp4",
 				}
 				checked = true
@@ -197,8 +197,129 @@ func getMultiPageData(html string) (*multiPage, error) {
 	}
 	return &data, nil
 }
+func getPageData(html string) (*BiliData, error) {
+	var data BiliData
+	multiPageDataString := utils.MatchOneOf(
+		html, `window.__playinfo__=(.+?)</script><script>window.__INITIAL_STATE`,
+	)
+	if multiPageDataString == nil {
+		return &data, errors.New("this page has no playlist")
+	}
+	err := json.Unmarshal([]byte(multiPageDataString[1]), &data)
+	if err != nil {
+		return nil, err
+	}
+	return &data, nil
+}
+func getPart(dash *Dash, quality int) ([]*types.Part, error) {
+	parts := make([]*types.Part, 1)
+	if dash.Audio == nil {
+		url := dash.Video[0].Url
+		_, ext, err := utils.GetNameAndExt(url)
+		if err != nil {
+			return nil, err
+		}
+		parts[0] = &types.Part{
+			URL:  url,
+			Size: 0,
+			Ext:  ext,
+		}
+	} else {
 
-func extractNormalVideo(url, html string, extractOption types.Options) ([]*types.Data, error) {
+		checked := false
+		for _, stream := range dash.Video {
+			if stream.Id == quality {
+				parts[0] = &types.Part{
+					URL:  stream.Url,
+					Size: 0,
+					Ext:  "mp4",
+				}
+				checked = true
+				break
+			}
+		}
+		if !checked {
+			return nil, nil
+		}
+	}
+	return parts, nil
+}
+func extractNormalVideo(url string, html string, options types.Options) ([]*types.Data, error) {
+	pageDatas, err := getMultiPageData(html)
+	pageData, err := getPageData(html)
+	options.MyMain.LogAppend("注意：bilibili 获取文件大小后会导致下载失败，所以B站视频下载无进度条")
+	if err != nil {
+		return nil, err
+	}
+	dashData := pageData.Data.Dash
+	var audioPart *types.Part
+	if dashData.Audio != nil {
+		// Get audio part
+		var audioID int
+		audios := map[int]string{}
+		bandwidth := 0
+		for _, stream := range dashData.Audio {
+			if stream.Bandwidth > bandwidth {
+				audioID = stream.Id
+				bandwidth = stream.Bandwidth
+			}
+			audios[stream.Id] = stream.Url
+		}
+		s, err := request.Size(audios[audioID], referer)
+		if err != nil {
+			return nil, err
+		}
+		audioPart = &types.Part{
+			URL:  audios[audioID],
+			Size: s,
+			Ext:  "m4a",
+		}
+	}
+	streams := make(map[string]*types.Stream, len(pageData.Data.Formats))
+	for _, q := range pageData.Data.Formats {
+		if _, ok := streams[strconv.Itoa(q.Quality)]; ok {
+			continue
+		}
+		parts, err := getPart(&dashData, q.Quality)
+		if parts == nil {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		if audioPart != nil {
+			parts = append(parts, audioPart)
+		}
+		var size int64
+		for _, part := range parts {
+			size += part.Size
+		}
+		streams[strconv.Itoa(q.Quality)] = &types.Stream{
+			Parts:   parts,
+			Size:    size,
+			Quality: qualityString[q.Quality],
+		}
+		if audioPart != nil {
+			streams[strconv.Itoa(q.Quality)].NeedMux = true
+		}
+	}
+	page := pageDatas.VideoData.Pages[0]
+	extractedData := make([]*types.Data, 1)
+	extractedData[0] = &types.Data{
+		Site:    "哔哩哔哩 bilibili.com",
+		Title:   "title",
+		VideoId: strconv.Itoa(page.Cid),
+		Type:    types.DataTypeVideo,
+		Streams: streams,
+		Caption: &types.Part{
+			URL: fmt.Sprintf("https://comment.bilibili.com/%d.xml", page.Cid),
+			Ext: "xml",
+		},
+		URL: url,
+	}
+	return extractedData, nil
+}
+func extractNormalVideo2(url, html string, extractOption types.Options) ([]*types.Data, error) {
 	pageData, err := getMultiPageData(html)
 	if err != nil {
 		return nil, err
@@ -352,9 +473,9 @@ func bilibiliDownload(options bilibiliOptions, extractOption types.Options) *typ
 			audios[stream.ID] = stream.BaseURL
 		}
 		//s, err := request.Size(audios[audioID], referer)
-		if err != nil {
-			return types.EmptyData(options.url, err)
-		}
+		//if err != nil {
+		//	return types.EmptyData(options.url, err)
+		//}
 		audioPart = &types.Part{
 			URL:  audios[audioID],
 			Size: 0,

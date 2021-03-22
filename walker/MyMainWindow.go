@@ -24,20 +24,32 @@ func Init() *MyMainWindow {
 		Title:    "烟火视频下载器-by tuifer",
 		MenuItems: []MenuItem{
 			Menu{
-				Text: "&收藏",
+				Text: "&帮助",
 				Items: []MenuItem{
 					Separator{},
 					Action{
-						Text:        "查看",
-						OnTriggered: mw.Search,
+						Text:        "爱奇艺",
+						OnTriggered: mw.Iqiyi,
+					},
+					Action{
+						Text:        "B站",
+						OnTriggered: mw.Bilibili,
+					},
+					Action{
+						Text:        "优酷",
+						OnTriggered: mw.Youku,
+					},
+					Action{
+						Text:        "抖音",
+						OnTriggered: mw.Douyin,
 					},
 				},
 			},
 			Menu{
-				Text: "&帮助",
+				Text: "&关于",
 				Items: []MenuItem{
 					Action{
-						Text:        "关于",
+						Text:        "作者",
 						OnTriggered: mw.AboutAction_Triggered,
 					},
 				},
@@ -161,7 +173,7 @@ func (m *Model) Value(index int) interface{} {
 }
 
 func (mw *MyMainWindow) AboutAction_Triggered() {
-	walk.MsgBox(mw, "关于", "tuifer视频网站下载器\n作者：tuifer 完成时间：2021-3-25 日", walk.MsgBoxIconQuestion)
+	walk.MsgBox(mw, "关于", "烟火视频网站下载器\n作者：tuifer \n Email:tuifer@foxmail.com", walk.MsgBoxIconQuestion)
 }
 
 func (mw *MyMainWindow) Search() {
@@ -200,7 +212,21 @@ func (mw *MyMainWindow) Lb_CurrentIndexChanged() {
 	mw.CurKey = item.value
 	return
 }
+func (mw *MyMainWindow) Iqiyi() {
 
+	walk.MsgBox(mw, "提示", "爱奇艺默认地址使用会员下载，只下载最高清晰度一种，\n免费资源可以多种清晰度选择下载，\n只需要将网址iqiyi.com前的i去掉即可", walk.MsgBoxIconInformation)
+}
+func (mw *MyMainWindow) Youku() {
+	walk.MsgBox(mw, "提示", "优酷会员账号如果失效，请打开优酷网站登录上vip账号后，浏览器上按F12，\n在console面板输入console.log(document.cookie)复制输出内容，\n粘贴到tuifei.json修改youku的后面双引号中", walk.MsgBoxIconInformation)
+}
+func (mw *MyMainWindow) Bilibili() {
+	walk.MsgBox(mw, "提示", "B站视频由于获取size会导致视频下载失效，所以b站视频下载无进度条", walk.MsgBoxIconInformation)
+
+}
+func (mw *MyMainWindow) Douyin() {
+	walk.MsgBox(mw, "提示", "抖音视频已自动去掉水印", walk.MsgBoxIconInformation)
+
+}
 func (mw *MyMainWindow) Lb_ItemActivated() {
 	value := mw.Model.items[mw.Lb.CurrentIndex()].value
 	walk.MsgBox(mw, "提示", "已选择清晰度："+value, walk.MsgBoxIconInformation)

@@ -53,7 +53,10 @@ func Request(method, url string, body io.Reader, headers map[string]string) (*ht
 	}
 	client := &http.Client{
 		Transport: transport,
-		Timeout:   15 * time.Minute,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+		Timeout: 15 * time.Minute,
 	}
 
 	req, err := http.NewRequest(method, url, body)
@@ -182,6 +185,10 @@ func Size(url, refer string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
+	l := h.Get("Location")
+	if l != "" {
+		return Size(l, refer)
+	}
 	s := h.Get("Content-Length")
 	if s == "" {
 		return 0, errors.New("Content-Length is not present")
@@ -199,6 +206,7 @@ func ContentType(url, refer string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	s := h.Get("Content-Type")
 	// handle Content-Type like this: "text/html; charset=utf-8"
 	return strings.Split(s, ";")[0], nil

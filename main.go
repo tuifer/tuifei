@@ -188,7 +188,7 @@ func download(videoURL string) error {
 			fmt.Print(item)
 			continue
 		}
-		fmt.Print("%s开始下载", item.URL)
+		//fmt.Print("%s开始下载", item.URL)
 		if err = defaultDownloader.Download(item); err != nil {
 			errors = append(errors, err)
 		}

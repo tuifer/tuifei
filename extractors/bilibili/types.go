@@ -72,6 +72,26 @@ type dash struct {
 	Data    dashInfo `json:"data"`
 	Result  dashInfo `json:"result"`
 }
+type Dash struct {
+	Video []struct {
+		Id  int    `json:"id"`
+		Url string `json:"baseUrl"`
+	} `json:"video"`
+	Audio []struct {
+		Id        int    `json:"id"`
+		Url       string `json:"baseUrl"`
+		Bandwidth int    `json:"bandwidth"`
+	} `json:"audio"`
+}
+type BiliData struct {
+	Data struct {
+		Dash    Dash `json:"dash"`
+		Formats []struct {
+			Quality int    `json:"quality"`
+			Des     string `json:"new_description"`
+		} `json:"support_formats"`
+	} `json:"data"`
+}
 
 var qualityString = map[int]string{
 	120: "超清 4K",
