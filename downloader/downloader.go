@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/tuifer/tuifei/config"
-	"github.com/tuifer/tuifei/walker"
 	"io"
 	"net/http"
 	"os"
@@ -14,7 +13,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
-	"strconv"
 	"sync"
 	"time"
 
@@ -43,12 +41,10 @@ type Options struct {
 	Aria2Token  string
 	Aria2Method string
 	Aria2Addr   string
-	MyMain      *walker.MyMainWindow
 }
 
 const (
 	DEFAULT_REFRESH_RATE = time.Millisecond * 200
-	DefaultRefreshRate   = DEFAULT_REFRESH_RATE
 )
 
 // Downloader is the default downloader.
@@ -71,21 +67,6 @@ func New(option Options) *Downloader {
 		option: option,
 	}
 	return downloader
-}
-func (downloader *Downloader) AutoBar() {
-	for {
-		if downloader.bar.IsFinished() {
-			return
-		} else {
-			time.After(DefaultRefreshRate)
-			downloader.option.MyMain.Sbi.SetText(downloader.bar.String())
-			n := int(downloader.bar.Get())
-			if err := downloader.option.MyMain.ProgressIndicator().SetCompleted(uint32(n)); err != nil {
-				fmt.Println(err)
-			}
-			downloader.option.MyMain.PBar.SetValue(n)
-		}
-	}
 }
 
 // caption downloads danmaku, subtitles, etc
@@ -115,22 +96,7 @@ func (downloader *Downloader) caption(url, fileName, ext string) error {
 	}
 	return nil
 }
-func (downloader *Downloader) progress(n int64) {
-	downloader.option.MyMain.Synchronize(func() {
-		if err := downloader.option.MyMain.ProgressIndicator().SetCompleted(uint32(n)); err != nil {
-			fmt.Println(err)
-		}
-	})
-	downloader.option.MyMain.Synchronize(func() {
-		downloader.option.MyMain.PBar.SetValue(downloader.option.MyMain.PBar.Value() + int(n))
-	})
-
-	//downloader.bar.Output
-}
 func (downloader *Downloader) writeFile(url string, file *os.File, headers map[string]string) (int64, error) {
-	//downloader.option.MyMain.LogAppend(fmt.Sprintf("开始下载分段网址%s：",url))
-	//downloader.option.MyMain.LogAppend(fmt.Sprintf("文件保存路径：%s",file))
-	downloader.option.MyMain.Sbl.SetText("正在下载：" + url)
 	res, err := request.Request(http.MethodGet, url, nil, headers)
 	if err != nil {
 		return 0, err
@@ -141,13 +107,9 @@ func (downloader *Downloader) writeFile(url string, file *os.File, headers map[s
 	// So don't worry about memory.
 	writer := io.MultiWriter(file, downloader.bar)
 	written, copyErr := io.Copy(writer, res.Body)
-	downloader.progress(written)
 	if copyErr != nil && copyErr != io.EOF {
-		downloader.option.MyMain.LogAppend(fmt.Sprintf("文件复制出错: %s", copyErr))
 		return written, fmt.Errorf("file copy error: %s", copyErr)
 	}
-	//downloader.option.MyMain.LogAppend(fmt.Sprintf("分段网址%s下载成功：",url))
-	//downloader.option.MyMain.PBar.SetValue(downloader.option.MyMain.PBar.Value() +int(written/1024))
 	return written, nil
 }
 
@@ -577,8 +539,6 @@ func (downloader *Downloader) aria2(title string, stream *types.Stream) error {
 func (downloader *Downloader) Download(data *types.Data) error {
 	sortedStreams := genSortedStreams(data.Streams)
 	config.SetThisStreams(sortedStreams)
-	downloader.option.MyMain.EmptyStream()
-
 	title := downloader.option.OutputName
 	if title == "" {
 		title = data.VideoId
@@ -598,8 +558,6 @@ func (downloader *Downloader) Download(data *types.Data) error {
 	}
 	if hasChose == false {
 		streamName = ""
-	} else {
-		downloader.option.MyMain.LogAppend("清晰度选择：" + streamName)
 	}
 
 	if streamName == "" {
@@ -609,18 +567,11 @@ func (downloader *Downloader) Download(data *types.Data) error {
 	if !ok {
 		return fmt.Errorf("no stream named %s", streamName)
 	}
-	//downloader.option.MyMain.Synchronize(func() {
-	//	downloader.option.MyMain.ProgressIndicator().SetTotal(uint32(stream.Size/1024))
-	//})
-	//downloader.option.MyMain.Synchronize(func() {
-	//	downloader.option.MyMain.PBar.SetRange(0, int(stream.Size/1024))
-	//})
+
 	if downloader.option.InfoOnly {
-		downloader.option.MyMain.LogAppend("视频清晰度解析完毕")
 		printInfo(data, sortedStreams)
 		return nil
 	}
-	downloader.option.MyMain.LogAppend(fmt.Sprintf("当前选择下载视频文件大小%sMiB", strconv.Itoa(int(stream.Size/1048576))))
 	printStreamInfo(data, stream)
 
 	// download caption
@@ -644,18 +595,12 @@ func (downloader *Downloader) Download(data *types.Data) error {
 	}
 	// After the merge, the file size has changed, so we do not check whether the size matches
 	if mergedFileExists {
-		downloader.option.MyMain.LogAppend(fmt.Sprintf("%s: file already exists, skipping\n", mergedFilePath))
 		fmt.Printf("%s: file already exists, skipping\n", mergedFilePath)
 		return nil
 	}
 
 	downloader.bar = progressBar(stream.Size)
-	downloader.option.MyMain.Synchronize(func() {
-		downloader.option.MyMain.ProgressIndicator().SetTotal(uint32(stream.Size))
-		downloader.option.MyMain.PBar.SetRange(0, int(stream.Size))
-	})
 	downloader.bar.Start()
-	go downloader.AutoBar()
 	if len(stream.Parts) == 1 {
 		// only one fragment
 		var err error
@@ -709,13 +654,10 @@ func (downloader *Downloader) Download(data *types.Data) error {
 		return nil
 	}
 	fmt.Printf("Merging video parts into %s\n", mergedFilePath)
-	downloader.option.MyMain.LogAppend(fmt.Sprintf("Merging video parts into %s\n", mergedFilePath))
 	if stream.Ext != "mp4" || stream.NeedMux {
 		return utils.MergeFilesWithSameExtension(parts, mergedFilePath)
 	}
 	err = utils.MergeToMP4(parts, mergedFilePath, title)
-	if err == nil {
-		downloader.option.MyMain.LogAppend(fmt.Sprintf("视频下载成功合并完毕 %s\n", mergedFilePath))
-	}
+
 	return err
 }

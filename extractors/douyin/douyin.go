@@ -80,7 +80,6 @@ func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, er
 		return nil, errors.New("unable to get video ID")
 	}
 	videoID := videoIDs[1]
-	option.MyMain.LogAppend("抖音视频ID:" + videoID)
 	apiDataString, err := request.Get(
 		fmt.Sprintf("https://www.douyin.com/web/api/v2/aweme/iteminfo/?item_ids=%s", videoID),
 		url, nil,
@@ -96,7 +95,6 @@ func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, er
 
 	realURL := apiData.ItemList[0].Video.PlayAddr.Urllist[0]
 	realURL = strings.Replace(realURL, "/playwm/", "/play/", 1)
-	option.MyMain.LogAppend("开始下载无水印抖音视频")
 	if realURL == "" || len(realURL) < 2 {
 		return nil, types.ErrURLParseFailed
 	}

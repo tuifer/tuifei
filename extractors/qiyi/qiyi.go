@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/lxn/walk"
 	"github.com/tuifer/tuifei/extractors/types"
 	"github.com/tuifer/tuifei/parser"
 	"github.com/tuifer/tuifei/request"
@@ -166,8 +165,6 @@ func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, er
 	streams := make(map[string]*types.Stream)
 	fmt.Print(len(videoDatas.Data.PROGRAM.VIDEO))
 	if len(videoDatas.Data.PROGRAM.VIDEO) == 0 {
-		walk.MsgBox(option.MyMain, "关于", "此视频经过加密，无法解码，无法下载", walk.MsgBoxIconQuestion)
-		option.MyMain.LogAppend("此视频经过加密，无法解码，无法下载")
 		return nil, errors.New("m4s视频经过加密，无法有效下载")
 	}
 

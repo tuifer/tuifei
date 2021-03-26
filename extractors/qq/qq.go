@@ -199,7 +199,6 @@ func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, er
 		vid = vids[1]
 	}
 	defn := config.GetConfigString("qq_def")
-	option.MyMain.LogAppend(fmt.Sprint("腾讯视频Vid:%s", vid))
 	data, err := getVinfo(vid, defn, url)
 	if err != nil {
 		return nil, err

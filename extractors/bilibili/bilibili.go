@@ -247,7 +247,6 @@ func getPart(dash *Dash, quality int) ([]*types.Part, error) {
 func extractNormalVideo(url string, html string, options types.Options) ([]*types.Data, error) {
 	pageDatas, err := getMultiPageData(html)
 	pageData, err := getPageData(html)
-	options.MyMain.LogAppend("注意：bilibili 获取文件大小后会导致下载失败，所以B站视频下载无进度条")
 	if err != nil {
 		return nil, err
 	}
@@ -319,77 +318,6 @@ func extractNormalVideo(url string, html string, options types.Options) ([]*type
 	}
 	return extractedData, nil
 }
-func extractNormalVideo2(url, html string, extractOption types.Options) ([]*types.Data, error) {
-	pageData, err := getMultiPageData(html)
-	if err != nil {
-		return nil, err
-	}
-	if extractOption.Playlist == false {
-		// handle URL that has a playlist, mainly for unified titles
-		// <h1> tag does not include subtitles
-		// bangumi doesn't need this
-		pageString := utils.MatchOneOf(url, `\?p=(\d+)`)
-		var p int
-		if pageString == nil {
-			// https://www.bilibili.com/video/av20827366/
-			p = 1
-		} else {
-			// https://www.bilibili.com/video/av20827366/?p=2
-			p, _ = strconv.Atoi(pageString[1])
-		}
-
-		if len(pageData.VideoData.Pages) < p || p < 1 {
-			return nil, types.ErrURLParseFailed
-		}
-
-		page := pageData.VideoData.Pages[p-1]
-		options := bilibiliOptions{
-			url:  url,
-			html: html,
-			aid:  pageData.Aid,
-			bvid: pageData.BVid,
-			cid:  page.Cid,
-			page: p,
-		}
-		// "part":"" or "part":"Untitled"
-		if page.Part == "Untitled" || len(pageData.VideoData.Pages) == 1 {
-			options.subtitle = ""
-		} else {
-			options.subtitle = page.Part
-		}
-		extractOption.MyMain.LogAppend("执行单级下载:" + url)
-		return []*types.Data{bilibiliDownload(options, extractOption)}, nil
-	}
-
-	// handle normal video playlist
-	// https://www.bilibili.com/video/av20827366/?p=1
-	needDownloadItems := utils.NeedDownloadList(extractOption.Items, extractOption.ItemStart, extractOption.ItemEnd, len(pageData.VideoData.Pages))
-	extractedData := make([]*types.Data, len(needDownloadItems))
-	wgp := utils.NewWaitGroupPool(extractOption.ThreadNumber)
-	dataIndex := 0
-	for index, u := range pageData.VideoData.Pages {
-		if !utils.ItemInSlice(index+1, needDownloadItems) {
-			continue
-		}
-		wgp.Add()
-		options := bilibiliOptions{
-			url:      url,
-			html:     html,
-			aid:      pageData.Aid,
-			bvid:     pageData.BVid,
-			cid:      u.Cid,
-			subtitle: u.Part,
-			page:     u.Page,
-		}
-		go func(index int, options bilibiliOptions, extractedData []*types.Data) {
-			defer wgp.Done()
-			extractedData[index] = bilibiliDownload(options, extractOption)
-		}(dataIndex, options, extractedData)
-		dataIndex++
-	}
-	wgp.Wait()
-	return extractedData, nil
-}
 
 type extractor struct{}
 
@@ -441,7 +369,6 @@ func bilibiliDownload(options bilibiliOptions, extractOption types.Options) *typ
 	if err != nil {
 		return types.EmptyData(options.url, err)
 	}
-	extractOption.MyMain.LogAppend("获取Api token接口成功:" + api)
 	jsonString, err := request.Get(api, referer, nil)
 	if err != nil {
 		return types.EmptyData(options.url, err)

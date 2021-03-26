@@ -1,7 +1,5 @@
 package types
 
-import "github.com/tuifer/tuifei/walker"
-
 // Part is the data structure for a single part of the video stream information.
 type Part struct {
 	URL  string `json:"url"`
@@ -115,7 +113,6 @@ type Options struct {
 	YoukuCcode       string
 	YoukuCkey        string
 	YoukuPassword    string
-	MyMain           *walker.MyMainWindow
 }
 
 // Extractor implements video data extraction related operations.
