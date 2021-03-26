@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/tuifer/tuifei/config"
 	"strconv"
 	"strings"
 
@@ -147,17 +148,17 @@ func genStreams(vid, cdn string, data qqVideoInfo) (map[string]*types.Stream, er
 				vkey = data.Vl.Vi[0].Fvkey
 			}
 			realURL := fmt.Sprintf("%s%s?vkey=%s", cdn, filename, vkey)
-			size, err := request.Size(realURL, cdn)
-			if err != nil {
-				return nil, err
-			}
+			//size, err := request.Size(realURL, cdn)
+			//if err != nil {
+			//	return nil, err
+			//}
 			urlData := &types.Part{
 				URL:  realURL,
-				Size: size,
+				Size: 0,
 				Ext:  "mp4",
 			}
 			urls = append(urls, urlData)
-			totalSize += size
+			totalSize = int64(fi.Fs)
 		}
 		streams[fi.Name] = &types.Stream{
 			Parts:   urls,
@@ -197,8 +198,9 @@ func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, er
 		}
 		vid = vids[1]
 	}
-
-	data, err := getVinfo(vid, "shd", url)
+	defn := config.GetConfigString("qq_def")
+	option.MyMain.LogAppend(fmt.Sprint("腾讯视频Vid:%s", vid))
+	data, err := getVinfo(vid, defn, url)
 	if err != nil {
 		return nil, err
 	}

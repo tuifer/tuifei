@@ -45,18 +45,18 @@ func GetRedirectUrl(sourceUrl string, headers map[string]string) (redirectUrl st
 		},
 	}
 
-	request, err := http.NewRequest("GET", sourceUrl, nil)
+	req, err := http.NewRequest("GET", sourceUrl, nil)
 	if err != nil {
 		return
 	}
-	request.Header.Add("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.70 Safari/537.36")
+	req.Header.Add("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.70 Safari/537.36")
 
 	if headers != nil {
 		for key := range headers {
-			request.Header.Set(key, headers[key])
+			req.Header.Set(key, headers[key])
 		}
 	}
-	rsq, err := client.Do(request)
+	rsq, err := client.Do(req)
 	if err != nil {
 		return
 	}
@@ -73,6 +73,9 @@ func GetRedirectUrl(sourceUrl string, headers map[string]string) (redirectUrl st
 // Extract is the main function to extract the data.
 func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, error) {
 	videoIDs := utils.MatchOneOf(url, `/video/(\d+)/`)
+	if len(videoIDs) == 0 {
+		videoIDs = utils.MatchOneOf(url, `&mid=(\d+)&`)
+	}
 	if len(videoIDs) == 0 {
 		return nil, errors.New("unable to get video ID")
 	}

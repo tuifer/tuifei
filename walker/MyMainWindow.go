@@ -11,15 +11,11 @@ import (
 	"time"
 )
 
-func NewWindow() *MyMainWindow {
-	return &MyMainWindow{}
-}
 func Init() *MyMainWindow {
 	mw := &MyMainWindow{}
 	var items []LogEntry
 	mw.LogModel = &LogModel{Loglist: items}
 	if err := (MainWindow{
-		Icon:     "img/search.ico",
 		AssignTo: &mw.MainWindow,
 		Title:    "烟火视频下载器-by tuifer",
 		MenuItems: []MenuItem{
@@ -120,9 +116,18 @@ func Init() *MyMainWindow {
 		},
 		StatusBarItems: []StatusBarItem{
 			{
+				Text:        "状态栏：",
+				ToolTipText: "状态栏目",
+			},
+			{
+				Width:       320,
 				AssignTo:    &mw.Sbi,
-				Text:        "状态栏",
+				Text:        "下载进度栏",
 				ToolTipText: "no tooltip for me",
+			}, {
+				Width:    600,
+				AssignTo: &mw.Sbl,
+				Text:     "Print status",
 			},
 		},
 	}.Create()); err != nil {
@@ -137,16 +142,15 @@ type MyMainWindow struct {
 	*walk.MainWindow
 	Lb       *walk.ListBox
 	Lb2      *walk.ListBox
-	te       *walk.TextEdit
 	InputUrl *walk.LineEdit
 	Sbi      *walk.StatusBarItem
+	Sbl      *walk.StatusBarItem
 	OutTE    *walk.TextEdit
 	Model    *Model
 	LogModel *LogModel
 	Query    *walk.PushButton
 	Down     *walk.PushButton
 	PBar     *walk.ProgressBar
-	Page     int
 	CurKey   string
 }
 

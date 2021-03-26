@@ -109,6 +109,7 @@ func Extract(u string, option types.Options) ([]*types.Data, error) {
 			domain = utils.Domain(u.Host)
 		}
 	}
+
 	extractor := extractorMap[domain]
 	videos, err := extractor.Extract(u, option)
 

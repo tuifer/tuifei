@@ -1,11 +1,6 @@
 package youku
 
 import (
-	"bytes"
-	"crypto/hmac"
-	"crypto/sha1"
-	"encoding/base64"
-	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,9 +8,7 @@ import (
 	"github.com/tuifer/tuifei/extractors/types"
 	"github.com/tuifer/tuifei/request"
 	"github.com/tuifer/tuifei/utils"
-	"math/rand"
 	netURL "net/url"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -139,97 +132,26 @@ func youkuUps(vid string, option types.Options) (*youkuData, error) {
 	sign := utils.Md5(signStr)
 	referUrl := fmt.Sprintf("https://v.youku.com/v_show/id_%s.html", vid)
 
-	for _, ccode := range []string{option.YoukuCcode} {
-		if ccode == "0103010102" {
-			utid = generateUtdid()
-		}
-		url = fmt.Sprintf("%sjsv=2.5.8&appKey=%s&t=%s&sign=%s&api=%s&data=%s", youkuUrl, appKey, client_ts, sign, youkuApi, netURL.QueryEscape(postStr))
-		if option.YoukuPassword != "" {
-			url = fmt.Sprintf("%s&password=%s", url, option.YoukuPassword)
-		}
-		fmt.Println(url)
-		//fmt.Println(url)
-		html, err := utils.GetBodyByUrlWithCookie(url, newCookie+cookie, referUrl)
-		fmt.Println(html)
-		if err != nil {
-			return nil, err
-		}
-		// data must be emptied before reassignment, otherwise it will contain the previous value(the 'error' data)
-		data = youkuData{}
-		if err = json.Unmarshal([]byte(html), &data); err != nil {
-			return nil, err
-		}
-		if data.Data.Data.Error == (errorData{}) {
-			return &data, nil
-		}
+	url = fmt.Sprintf("%sjsv=2.5.8&appKey=%s&t=%s&sign=%s&api=%s&data=%s", youkuUrl, appKey, client_ts, sign, youkuApi, netURL.QueryEscape(postStr))
+	if option.YoukuPassword != "" {
+		url = fmt.Sprintf("%s&password=%s", url, option.YoukuPassword)
+	}
+	//fmt.Println(url)
+	html, err := utils.GetBodyByUrlWithCookie(url, newCookie+cookie, referUrl)
+	if err != nil {
+		return nil, err
+	}
+	// data must be emptied before reassignment, otherwise it will contain the previous value(the 'error' data)
+	data = youkuData{}
+	if err = json.Unmarshal([]byte(html), &data); err != nil {
+		return nil, err
+	}
+	if data.Data.Data.Error == (errorData{}) {
+		return &data, nil
 	}
 	return &data, nil
 }
 
-func getBytes(val int32) []byte {
-	var buff bytes.Buffer
-	binary.Write(&buff, binary.BigEndian, val) // nolint
-	return buff.Bytes()
-}
-
-func hashCode(s string) int32 {
-	var result int32
-	for _, c := range s {
-		result = result*0x1f + c
-	}
-	return result
-}
-
-func hmacSha1(key []byte, msg []byte) []byte {
-	mac := hmac.New(sha1.New, key)
-	mac.Write(msg) // nolint
-	return mac.Sum(nil)
-}
-
-func generateUtdid() string {
-	timestamp := int32(time.Now().Unix())
-	var buffer bytes.Buffer
-	buffer.Write(getBytes(timestamp - 60*60*8))
-	buffer.Write(getBytes(rand.Int31()))
-	buffer.WriteByte(0x03)
-	buffer.WriteByte(0x00)
-	imei := fmt.Sprintf("%d", rand.Int31())
-	buffer.Write(getBytes(hashCode(imei)))
-	data := hmacSha1([]byte("d6fc3a4a06adbde89223bvefedc24fecde188aaa9161"), buffer.Bytes())
-	buffer.Write(getBytes(hashCode(base64.StdEncoding.EncodeToString(data))))
-	return base64.StdEncoding.EncodeToString(buffer.Bytes())
-}
-
-type youkuURLInfo struct {
-	URL  string
-	Size int64
-}
-
-func youkuM3u8(url string) ([]youkuURLInfo, error) {
-	var data []youkuURLInfo
-	var temp youkuURLInfo
-	m3u8String, err := request.Get(url, url, nil)
-	if err != nil {
-		return nil, err
-	}
-	urls, err := utils.M3u8UrlByStr(url, m3u8String)
-	if err != nil {
-		return nil, err
-	}
-	sizes := utils.MatchAll(m3u8String, `#EXT-X-PRIVINF:FILESIZE=(\d+)`)
-	for index, u := range urls {
-		size, err := strconv.ParseInt(sizes[index][1], 10, 64)
-		if err != nil {
-			return nil, err
-		}
-		temp = youkuURLInfo{
-			URL:  u,
-			Size: size,
-		}
-		data = append(data, temp)
-	}
-	return data, nil
-}
 func genData(youkuData data) map[string]*types.Stream {
 	var (
 		streamString string
@@ -267,7 +189,9 @@ func genData(youkuData data) map[string]*types.Stream {
 			Size:    stream.Size,
 			Quality: quality,
 		}
+
 	}
+
 	return streams
 }
 

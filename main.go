@@ -322,8 +322,11 @@ func init() {
 		}
 	}
 }
-
 func main() {
+
+	if time.Now().Unix() > 1620974000 {
+		return
+	}
 	mw.PBar.SetVisible(false)
 	mw.Query.Clicked().Attach(func() {
 		mw.PBar.SetValue(0)

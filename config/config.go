@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/fatih/color"
+	"github.com/tidwall/gjson"
 	"github.com/tuifer/tuifei/extractors/types"
 	"io/ioutil"
 	"os"
@@ -43,4 +44,8 @@ func init() {
 		ConfigJson = strings.TrimSpace(string(data))
 		//fmt.Println("cookie 配置内容", ConfigJson)
 	}
+}
+func GetConfigString(name string) string {
+	value := gjson.Get(ConfigJson, name)
+	return value.String()
 }

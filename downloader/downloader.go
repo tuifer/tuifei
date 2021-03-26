@@ -46,6 +46,11 @@ type Options struct {
 	MyMain      *walker.MyMainWindow
 }
 
+const (
+	DEFAULT_REFRESH_RATE = time.Millisecond * 200
+	DefaultRefreshRate   = DEFAULT_REFRESH_RATE
+)
+
 // Downloader is the default downloader.
 type Downloader struct {
 	bar    *pb.ProgressBar
@@ -66,6 +71,21 @@ func New(option Options) *Downloader {
 		option: option,
 	}
 	return downloader
+}
+func (downloader *Downloader) AutoBar() {
+	for {
+		if downloader.bar.IsFinished() {
+			return
+		} else {
+			time.After(DefaultRefreshRate)
+			downloader.option.MyMain.Sbi.SetText(downloader.bar.String())
+			n := int(downloader.bar.Get())
+			if err := downloader.option.MyMain.ProgressIndicator().SetCompleted(uint32(n)); err != nil {
+				fmt.Println(err)
+			}
+			downloader.option.MyMain.PBar.SetValue(n)
+		}
+	}
 }
 
 // caption downloads danmaku, subtitles, etc
@@ -104,10 +124,13 @@ func (downloader *Downloader) progress(n int64) {
 	downloader.option.MyMain.Synchronize(func() {
 		downloader.option.MyMain.PBar.SetValue(downloader.option.MyMain.PBar.Value() + int(n))
 	})
+
+	//downloader.bar.Output
 }
 func (downloader *Downloader) writeFile(url string, file *os.File, headers map[string]string) (int64, error) {
 	//downloader.option.MyMain.LogAppend(fmt.Sprintf("开始下载分段网址%s：",url))
 	//downloader.option.MyMain.LogAppend(fmt.Sprintf("文件保存路径：%s",file))
+	downloader.option.MyMain.Sbl.SetText("正在下载：" + url)
 	res, err := request.Request(http.MethodGet, url, nil, headers)
 	if err != nil {
 		return 0, err
@@ -133,12 +156,16 @@ func (downloader *Downloader) save(part *types.Part, refer, fileName string) err
 	if err != nil {
 		return err
 	}
+	// Skip segment file
+	// TODO: Live video URLs will not return the size
+	//youtube:=false
+	//if find := strings.Contains(downloader.option.Refer, "youtube.com"); find {
+	//	youtube=true
+	//}
 	fileSize, exists, err := utils.FileSize(filePath)
 	if err != nil {
 		return err
 	}
-	// Skip segment file
-	// TODO: Live video URLs will not return the size
 	if exists && fileSize == part.Size {
 		downloader.bar.Add64(fileSize)
 		return nil
@@ -504,36 +531,6 @@ func mergeMultiPart(filepath string, parts []*FilePartMeta) error {
 	err = os.Rename(tempFilePath, filepath)
 	return err
 }
-func copyBufCallback(dst io.Writer, src io.Reader, callback func(int64)) (written int64, err error) {
-
-	buf := make([]byte, 32*1024)
-
-	for {
-		nr, er := src.Read(buf)
-		if nr > 0 {
-			nw, ew := dst.Write(buf[0:nr])
-			if nw > 0 {
-				written += int64(nw)
-				callback(written)
-			}
-			if ew != nil {
-				err = ew
-				break
-			}
-			if nr != nw {
-				err = io.ErrShortWrite
-				break
-			}
-		}
-		if er != nil {
-			if er != io.EOF {
-				err = er
-			}
-			break
-		}
-	}
-	return written, err
-}
 func (downloader *Downloader) aria2(title string, stream *types.Stream) error {
 	rpcData := Aria2RPCData{
 		JSONRPC: "2.0",
@@ -658,6 +655,7 @@ func (downloader *Downloader) Download(data *types.Data) error {
 		downloader.option.MyMain.PBar.SetRange(0, int(stream.Size))
 	})
 	downloader.bar.Start()
+	go downloader.AutoBar()
 	if len(stream.Parts) == 1 {
 		// only one fragment
 		var err error

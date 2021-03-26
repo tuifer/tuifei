@@ -1,18 +1,14 @@
 package youtube
 
 import (
-	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
-	"strings"
-
-	"github.com/rylio/ytdl"
-
+	ytdl "github.com/kkdai/youtube/v2"
 	"github.com/tuifer/tuifei/extractors/types"
 	"github.com/tuifer/tuifei/request"
 	"github.com/tuifer/tuifei/utils"
+	"strconv"
+	"strings"
 )
 
 type streamFormat struct {
@@ -29,7 +25,7 @@ type formats []*streamFormat
 func (playerAdaptiveFormats formats) filterPlayerAdaptiveFormats(videoInfoFormats ytdl.FormatList) (filter formats) {
 	videoInfoFormatMap := make(map[int]struct{}, len(videoInfoFormats))
 	for _, f := range videoInfoFormats {
-		videoInfoFormatMap[f.Number] = struct{}{}
+		videoInfoFormatMap[f.ItagNo] = struct{}{}
 	}
 	for _, f := range playerAdaptiveFormats {
 		if _, ok := videoInfoFormatMap[f.Itag]; ok {
@@ -37,22 +33,6 @@ func (playerAdaptiveFormats formats) filterPlayerAdaptiveFormats(videoInfoFormat
 		}
 	}
 	return
-}
-
-type playerResponseType struct {
-	StreamingData struct {
-		Formats         formats `json:"formats"`
-		AdaptiveFormats formats `json:"adaptiveFormats"`
-	} `json:"streamingData"`
-	VideoDetails struct {
-		Title string `json:"title"`
-	} `json:"videoDetails"`
-}
-
-type youtubeData struct {
-	Args struct {
-		PlayerResponse string `json:"player_response"`
-	} `json:"args"`
 }
 
 const referer = "https://www.youtube.com"
@@ -124,40 +104,13 @@ func youtubeDownload(uri string) *types.Data {
 		"https://www.youtube.com/watch?v=%s",
 		vid[1],
 	)
-
-	videoInfo, err := ytdl.DefaultClient.GetVideoInfo(context.TODO(), uri)
+	client := ytdl.Client{}
+	videoInfo, err := client.GetVideo(videoURL)
 	if err != nil {
 		return types.EmptyData(uri, err)
 	}
-
-	html, err := request.Get(videoURL, referer, nil)
-	if err != nil {
-		return types.EmptyData(uri, err)
-	}
-	ytplayer := utils.MatchOneOf(html, `;ytplayer\.config\s*=\s*({.+?});`)
-	if ytplayer == nil || len(ytplayer) < 2 {
-		if strings.Contains(html, "LOGIN_REQUIRED") ||
-			strings.Contains(html, "Sign in to confirm your age") {
-			return types.EmptyData(uri, types.ErrLoginRequired)
-		}
-		return types.EmptyData(uri, types.ErrURLParseFailed)
-	}
-
-	var data youtubeData
-	if err = json.Unmarshal([]byte(ytplayer[1]), &data); err != nil {
-		return types.EmptyData(uri, err)
-	}
-	var playerResponse playerResponseType
-	if err = json.Unmarshal([]byte(data.Args.PlayerResponse), &playerResponse); err != nil {
-		return types.EmptyData(uri, err)
-	}
-	title := playerResponse.VideoDetails.Title
-	playerResponse.StreamingData.AdaptiveFormats = playerResponse.
-		StreamingData.
-		AdaptiveFormats.
-		filterPlayerAdaptiveFormats(videoInfo.Formats)
-
-	streams, err := extractVideoURLS(playerResponse, videoInfo)
+	title := videoInfo.Title
+	streams, err := extractVideoURL(videoInfo)
 	if err != nil {
 		return types.EmptyData(uri, err)
 	}
@@ -180,40 +133,23 @@ func getStreamExt(streamType string) string {
 	}
 	return exts[2]
 }
-
-func getRealURL(videoFormat *streamFormat, videoInfo *ytdl.VideoInfo, ext string) (*types.Part, error) {
-	var ytdlFormat *ytdl.Format
-	for _, f := range videoInfo.Formats {
-		if f.Itag.Number == videoFormat.Itag {
-			ytdlFormat = f
-			break
-		}
-	}
-
-	if ytdlFormat == nil {
-		return nil, fmt.Errorf("unable to get info for itag %d", videoFormat.Itag)
-	}
-
-	realURL, err := ytdl.DefaultClient.GetDownloadURL(context.TODO(), videoInfo, ytdlFormat)
-	if err != nil {
-		return nil, err
-	}
+func getRealURL(videoFormat *ytdl.Format, ext string) (*types.Part, error) {
 	size, _ := strconv.ParseInt(videoFormat.ContentLength, 10, 64)
 	return &types.Part{
-		URL:  realURL.String(),
+		URL:  videoFormat.URL,
 		Size: size,
 		Ext:  ext,
 	}, nil
 }
-
-func genStream(videoFormat *streamFormat, videoInfo *ytdl.VideoInfo) (*types.Stream, error) {
+func genStream(videoFormat *ytdl.Format) (*types.Stream, error) {
 	streamType := videoFormat.MimeType
 	ext := getStreamExt(streamType)
+
 	if ext == "" {
 		return nil, fmt.Errorf("unable to get file extension of MimeType %s", streamType)
 	}
 
-	video, err := getRealURL(videoFormat, videoInfo, ext)
+	video, err := getRealURL(videoFormat, ext)
 	if err != nil {
 		return nil, err
 	}
@@ -226,43 +162,39 @@ func genStream(videoFormat *streamFormat, videoInfo *ytdl.VideoInfo) (*types.Str
 	}
 
 	return &types.Stream{
-		ID:      strconv.Itoa(videoFormat.Itag),
+		ID:      strconv.Itoa(videoFormat.ItagNo),
 		Parts:   []*types.Part{video},
 		Quality: quality,
 		NeedMux: true,
 	}, nil
 }
+func extractVideoURL(videoInfo *ytdl.Video) (map[string]*types.Stream, error) {
+	streams := make(map[string]*types.Stream, len(videoInfo.Formats))
 
-func extractVideoURLS(data playerResponseType, videoInfo *ytdl.VideoInfo) (map[string]*types.Stream, error) {
-	streams := make(map[string]*types.Stream, len(data.StreamingData.Formats)+len(data.StreamingData.AdaptiveFormats))
-	for _, f := range data.StreamingData.Formats {
-		stream, err := genStream(f, videoInfo)
+	for _, f := range videoInfo.Formats {
+
+		stream, err := genStream(&f)
 		if err != nil {
 			return nil, err
 		}
 
-		streams[strconv.Itoa(f.Itag)] = stream
+		streams[strconv.Itoa(f.ItagNo)] = stream
 	}
-
-	// Unlike `url_encoded_fmt_stream_map`, all videos in `adaptive_fmts` have no sound,
-	// we need download video and audio both and then merge them.
-
-	// Get separate m4a and webm audio streams for videos in AdaptiveFormats.
-	// Prefer medium quality audio over low quality (there is no AUDIO_QUALITY_HIGH).
-	var fM4aMedium, fM4aLow, fWebmMedium, fWebmLow *streamFormat
-	for i, f := range data.StreamingData.AdaptiveFormats {
+	var fM4aMedium, fM4aLow, fWebmMedium, fWebmLow *ytdl.Format
+	for _, f := range videoInfo.Formats {
 		switch {
 		case strings.HasPrefix(f.MimeType, "audio/mp4"):
 			if f.AudioQuality == "AUDIO_QUALITY_MEDIUM" {
-				fM4aMedium = data.StreamingData.AdaptiveFormats[i]
+				fM4aMedium = &f
 			} else {
-				fM4aLow = data.StreamingData.AdaptiveFormats[i]
+				fM4aLow = &f
 			}
 		case strings.HasPrefix(f.MimeType, "audio/webm"):
+
 			if f.AudioQuality == "AUDIO_QUALITY_MEDIUM" {
-				fWebmMedium = data.StreamingData.AdaptiveFormats[i]
+				fWebmMedium = &f
 			} else {
-				fWebmLow = data.StreamingData.AdaptiveFormats[i]
+				fWebmLow = &f
 			}
 		}
 
@@ -270,39 +202,37 @@ func extractVideoURLS(data playerResponseType, videoInfo *ytdl.VideoInfo) (map[s
 			break
 		}
 	}
-
-	var audioM4a *types.Part
-	if fM4aMedium != nil {
-		audioURL, err := getRealURL(fM4aMedium, videoInfo, "m4a")
-		if err != nil {
-			return nil, err
-		}
-		audioM4a = audioURL
-	} else if fM4aLow != nil {
-		audioURL, err := getRealURL(fM4aLow, videoInfo, "m4a")
-		if err != nil {
-			return nil, err
-		}
-		audioM4a = audioURL
-	}
-
 	var audioWebm *types.Part
 	if fWebmMedium != nil {
-		audioURL, err := getRealURL(fWebmMedium, videoInfo, "webm")
+		audioURL, err := getRealURL(fWebmMedium, "webm")
 		if err != nil {
 			return nil, err
 		}
 		audioWebm = audioURL
 	} else if fWebmLow != nil {
-		audioURL, err := getRealURL(fWebmLow, videoInfo, "webm")
+		audioURL, err := getRealURL(fWebmLow, "webm")
 		if err != nil {
 			return nil, err
 		}
 		audioWebm = audioURL
 	}
+	var audioM4a *types.Part
+	if fM4aMedium != nil {
+		audioURL, err := getRealURL(fM4aMedium, "m4a")
+		if err != nil {
+			return nil, err
+		}
+		audioM4a = audioURL
+	} else if fM4aLow != nil {
+		audioURL, err := getRealURL(fM4aLow, "m4a")
+		if err != nil {
+			return nil, err
+		}
+		audioM4a = audioURL
+	}
+	for _, f := range videoInfo.Formats {
 
-	for _, f := range data.StreamingData.AdaptiveFormats {
-		stream, err := genStream(f, videoInfo)
+		stream, err := genStream(&f)
 		if err != nil {
 			return nil, err
 		}
@@ -312,14 +242,16 @@ func extractVideoURLS(data playerResponseType, videoInfo *ytdl.VideoInfo) (map[s
 		case strings.HasPrefix(f.MimeType, "video/mp4"):
 			if audioM4a != nil {
 				stream.Parts = append(stream.Parts, audioM4a)
+				stream.Quality = fmt.Sprintf("%s m4a音频分轨", stream.Quality)
 			}
 		case strings.HasPrefix(f.MimeType, "video/webm"):
 			if audioWebm != nil {
 				stream.Parts = append(stream.Parts, audioWebm)
+				stream.Quality = fmt.Sprintf("%s webm音频分轨", stream.Quality)
 			}
 		}
 
-		streams[strconv.Itoa(f.Itag)] = stream
+		streams[strconv.Itoa(f.ItagNo)] = stream
 	}
 	return streams, nil
 }

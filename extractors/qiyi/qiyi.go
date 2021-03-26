@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lxn/walk"
 	"github.com/tuifer/tuifei/extractors/types"
 	"github.com/tuifer/tuifei/parser"
 	"github.com/tuifer/tuifei/request"
 	"github.com/tuifer/tuifei/utils"
-	"math/rand"
 	"strconv"
 	"strings"
 )
@@ -21,49 +21,14 @@ type qiyi struct {
 				Bid   int    `json:"bid"`
 				Scrsz string `json:"scrsz"`
 				Vsize int64  `json:"vsize"`
-				Url   string `url`
+				Url   string `json:"url"`
 			} `json:"video"`
 		} `json:"program"`
 	} `json:"data"`
 	Msg string `json:"msg"`
 }
-type qiyiURL struct {
-	L string `json:"l"`
-}
 
 const qiyiReferer = "https://www.iqiyi.com"
-
-func getMacID() string {
-	var macID string
-	chars := []string{
-		"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "n", "m", "o", "p", "q", "r", "s", "t", "u", "v",
-		"w", "x", "y", "z", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
-	}
-	size := len(chars)
-	for i := 0; i < 32; i++ {
-		macID += chars[rand.Intn(size)]
-	}
-	return macID
-}
-
-func getVF(params string) string {
-	var suffix string
-	for j := 0; j < 8; j++ {
-		for k := 0; k < 4; k++ {
-			var v8 int
-			v4 := 13 * (66*k + 27*j) % 35
-			if v4 >= 10 {
-				v8 = v4 + 88
-			} else {
-				v8 = v4 + 49
-			}
-			suffix += string(v8) // string(97) -> "a"
-		}
-	}
-	params += suffix
-
-	return utils.Md5(params)
-}
 
 func substring(source string, start int, end int) string {
 	var r = []rune(source)
@@ -113,9 +78,6 @@ type qiyiURLInfo struct {
 	URL  string
 	Size int64
 }
-type qiyiVideoAddr struct {
-	Info string `json:"info"`
-}
 
 func qiyiM3u8(url string) ([]qiyiURLInfo, error) {
 	var data []qiyiURLInfo
@@ -137,7 +99,7 @@ func qiyiM3u8(url string) ([]qiyiURLInfo, error) {
 }
 
 // Extract is the main function to extract the data.
-func (e *extractor) Extract(url string, _ types.Options) ([]*types.Data, error) {
+func (e *extractor) Extract(url string, option types.Options) ([]*types.Data, error) {
 	url = strings.Replace(url, ".qiyi.com", ".iqiyi.com", 1)
 	html, err := request.Get(url, qiyiReferer, nil)
 	if err != nil {
@@ -204,6 +166,8 @@ func (e *extractor) Extract(url string, _ types.Options) ([]*types.Data, error) 
 	streams := make(map[string]*types.Stream)
 	fmt.Print(len(videoDatas.Data.PROGRAM.VIDEO))
 	if len(videoDatas.Data.PROGRAM.VIDEO) == 0 {
+		walk.MsgBox(option.MyMain, "关于", "此视频经过加密，无法解码，无法下载", walk.MsgBoxIconQuestion)
+		option.MyMain.LogAppend("此视频经过加密，无法解码，无法下载")
 		return nil, errors.New("m4s视频经过加密，无法有效下载")
 	}
 

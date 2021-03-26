@@ -6,16 +6,16 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
-
 	cookiemonster "github.com/MercuryEngineering/CookieMonster"
 	"github.com/fatih/color"
 	"github.com/kr/pretty"
+	"io"
+	"io/ioutil"
+	"net/http"
+	netUrl "net/url"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/tuifer/tuifei/config"
 )
@@ -45,18 +45,34 @@ func SetOptions(opt Options) {
 
 // Request base request
 func Request(method, url string, body io.Reader, headers map[string]string) (*http.Response, error) {
-	transport := &http.Transport{
-		Proxy:               http.ProxyFromEnvironment,
-		DisableCompression:  true,
-		TLSHandshakeTimeout: 10 * time.Second,
-		TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+	var transport *http.Transport
+	var proxy string
+	if find := strings.Contains(url, "googlevideo.com") || strings.Contains(url, "youtube.com"); find {
+		proxy = config.GetConfigString("proxy")
+	} else {
+		proxy = ""
+	}
+	if proxy == "" {
+		transport = &http.Transport{
+			Proxy:               http.ProxyFromEnvironment,
+			DisableCompression:  true,
+			TLSHandshakeTimeout: 10 * time.Second,
+			TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+		}
+	} else {
+		url_i := netUrl.URL{}
+		url_proxy, _ := url_i.Parse(proxy)
+		transport = &http.Transport{
+			Proxy:               http.ProxyURL(url_proxy),
+			DisableCompression:  true,
+			TLSHandshakeTimeout: 10 * time.Second,
+			TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+		}
+
 	}
 	client := &http.Client{
 		Transport: transport,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-		Timeout: 15 * time.Minute,
+		Timeout:   15 * time.Minute,
 	}
 
 	req, err := http.NewRequest(method, url, body)
